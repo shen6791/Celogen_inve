@@ -62,10 +62,20 @@ db.collection("store").doc("activities").onSnapshot(doc => {
 });
 
 db.collection("store").doc("users").onSnapshot(doc => {
+    let loadedUsers = [];
     if (doc.exists) {
-        users = doc.data().data || [];
-        if (currentRole === 'Admin') renderUsers();
+        loadedUsers = doc.data().data || [];
     }
+    
+    if (loadedUsers.length === 0) {
+        loadedUsers = [
+            { username: 'Admin', role: 'Admin', password: 'admin123' },
+            { username: 'Assistant', role: 'Assistant', password: 'staff123' }
+        ];
+    }
+    
+    users = loadedUsers;
+    if (currentRole === 'Admin') renderUsers();
 });
 
 auth.onAuthStateChanged(user => {
@@ -2163,10 +2173,7 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
         initTheme();
         checkAuth();
-        // Delay data rendering slightly to ensure DOM is fully ready
-        setTimeout(() => {
-            saveData();
-        }, 100);
+        // Removed delayed saveData to prevent overwriting cloud database with empty local arrays on page reload
     } catch (e) {
         console.error("Initialization error:", e);
     }
