@@ -2073,18 +2073,32 @@ document.getElementById('login-form')?.addEventListener('submit', (e) => {
         showToast("Welcome back, " + usernameInput + "!");
         logActivity("User " + usernameInput + " logged in", 'info');
     }).catch(err => {
-        if (err.code === 'auth/user-not-found') {
-            // Auto-create predefined users on first login attempt if they exist in our users array
-            const userRec = users.find(u => u.username.toLowerCase() === usernameInput.toLowerCase() && u.password === pass);
-            if (userRec) {
-                auth.createUserWithEmailAndPassword(email, pass).then(() => {
-                    if (errorEl) errorEl.style.display = 'none';
-                    showToast("Account initialized. Welcome, " + usernameInput + "!");
-                    logActivity("User " + usernameInput + " initialized", 'info');
-                });
-                return;
-            }
+        // Modern Firebase uses generic invalid-credential for missing users too
+        const userRec = users.find(u => u.username.toLowerCase() === usernameInput.toLowerCase() && u.password === pass);
+        
+        if (userRec && (err.code === 'auth/user-not-found' || err.code.includes('invalid-credential'))) {
+            auth.createUserWithEmailAndPassword(email, pass).then(() => {
+                if (errorEl) errorEl.style.display = 'none';
+                showToast("Account initialized. Welcome, " + usernameInput + "!");
+                logActivity("User " + usernameInput + " initialized", 'info');
+            }).catch(createErr => {
+                if (createErr.code === 'auth/email-already-in-use') {
+                    // This means the account exists, but they typed the wrong password
+                    if (errorEl) {
+                        errorEl.style.display = 'block';
+                        errorEl.innerText = 'Invalid username or password.';
+                    }
+                } else {
+                    console.error('Account creation failed:', createErr);
+                    if (errorEl) {
+                        errorEl.style.display = 'block';
+                        errorEl.innerText = createErr.message;
+                    }
+                }
+            });
+            return;
         }
+
         console.error('Login failed:', err);
         if (errorEl) {
             errorEl.style.display = 'block';
