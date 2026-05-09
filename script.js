@@ -70,12 +70,6 @@ async function loadDataFromGas() {
         return false;
     }
 }
-        
-    } catch (error) {
-        console.error("Error loading data from Google Sheets:", error);
-        showToast("Error loading data from database.", "error");
-    }
-}
 
 // Utility: Save to Google Sheets
 function saveData() {
