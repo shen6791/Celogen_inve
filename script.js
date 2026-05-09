@@ -2070,5 +2070,3 @@ document.getElementById('btn-export-yearly')?.addEventListener('click', () => {
     XLSX.utils.book_append_sheet(wb, ws, "Annual Usage");
     XLSX.writeFile(wb, `Celogen_Annual_Usage_${year}.xlsx`);
 });
-
-});
