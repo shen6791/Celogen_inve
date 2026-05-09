@@ -983,97 +983,130 @@ function renderSampleRequestGrid() {
 
     if (doctors.length === 0 || medicines.length === 0) {
         head.innerHTML = '';
-        body.innerHTML = '<tr><td colspan="3" style="text-align:center; padding: 2rem; color: var(--text-muted);">No products or recipients found. Please add some first.</td></tr>';
+        body.innerHTML = '<tr><td colspan="3" style="text-align:center; padding: 2rem; color: var(--text-muted);">No products or recipients found.</td></tr>';
         return;
     }
 
-    // --- STICKY HEADER ROW ---
-    // Two-row header: Row 1 = Product Name + Doctor Names + Total
-    let headHtml = `<tr style="position:sticky; top:0; z-index:20;">
-        <th style="position:sticky; left:0; z-index:25; background:var(--bg-panel); min-width:180px; text-align:left; padding:10px 12px; border-right: 2px solid var(--border-color); white-space:nowrap;">Product Name</th>`;
+    // HEADER: NO | NAME | [Medicine Columns...]
+    let headHtml = `<tr style="position:sticky; top:0; z-index:20; background:var(--bg-panel);">
+        <th style="width:40px; padding:8px 6px; text-align:center; border:1px solid var(--border-color);">NO</th>
+        <th style="position:sticky; left:40px; z-index:21; background:var(--bg-panel); min-width:200px; text-align:left; padding:8px 10px; border:1px solid var(--border-color);">NAME</th>`;
 
-    doctors.forEach(doc => {
-        // Truncate long names for the header
-        const shortName = doc.name.length > 12 ? doc.name.substring(0, 11) + '…' : doc.name;
-        headHtml += `<th title="${doc.name}" style="min-width:60px; max-width:70px; padding:6px 4px; font-size:0.65rem; font-weight:600; text-align:center; word-break:break-word; line-height:1.2; vertical-align:bottom; background:var(--bg-panel);">${shortName}</th>`;
+    medicines.forEach(med => {
+        headHtml += `<th style="min-width:68px; max-width:80px; padding:5px 3px; font-size:0.65rem; font-weight:700; text-align:center; background:var(--bg-panel); border:1px solid var(--border-color); line-height:1.3;">${med.name}</th>`;
     });
 
-    headHtml += `<th style="position:sticky; right:0; z-index:25; background:var(--bg-panel); min-width:60px; font-weight:700; color:var(--primary); text-align:center; border-left: 2px solid var(--border-color);">TOTAL</th>
-    </tr>`;
+    headHtml += `</tr>`;
     head.innerHTML = headHtml;
 
-    // --- BODY ROWS ---
+    // BODY: One row per recipient
     let bodyHtml = '';
-    medicines.forEach(med => {
+    doctors.forEach((doc, index) => {
         bodyHtml += `<tr>
-            <td style="position:sticky; left:0; background:var(--bg-panel); z-index:9; border-right:2px solid var(--border-color); padding:8px 12px; white-space:nowrap; min-width:180px;">
-                <div style="font-weight:600; font-size:0.85rem;">${med.name}</div>
-                <div style="font-size:0.7rem; color:var(--text-muted); margin-top:2px;">Stock: ${med.quantity}</div>
-            </td>`;
+            <td style="text-align:center; font-weight:600; padding:5px 6px; border:1px solid var(--border-color); color:var(--text-muted); font-size:0.8rem;">${index + 1}</td>
+            <td style="position:sticky; left:40px; background:var(--bg-panel); z-index:9; border:1px solid var(--border-color); padding:6px 10px; white-space:nowrap; font-weight:500; font-size:0.82rem;">${doc.name}</td>`;
 
-        doctors.forEach(doc => {
-            bodyHtml += `<td style="padding:4px; text-align:center;">
-                <input type="number" 
-                    class="sample-input" 
-                    data-med="${med.id}" 
-                    data-doc="${doc.id}" 
-                    min="0" 
-                    value="0" 
-                    oninput="calculateSampleTotals()" 
-                    style="width:52px; padding:5px 2px; font-size:0.85rem; background:var(--bg-main); border:1px solid var(--border-color); color:var(--text-primary); text-align:center; border-radius:6px; -moz-appearance:textfield;">
+        medicines.forEach(med => {
+            bodyHtml += `<td style="padding:3px; text-align:center; border:1px solid var(--border-color);">
+                <input type="number"
+                    class="sample-input"
+                    data-doc="${doc.id}"
+                    data-med="${med.id}"
+                    min="0"
+                    value="0"
+                    oninput="calculateSampleTotals()"
+                    style="width:58px; padding:5px 2px; font-size:0.82rem; background:transparent; border:1px solid transparent; color:var(--text-primary); text-align:center; border-radius:4px; outline:none;"
+                    onfocus="this.style.border='1px solid var(--primary)'"
+                    onblur="this.style.border='1px solid transparent'">
             </td>`;
         });
 
-        bodyHtml += `<td style="position:sticky; right:0; background:var(--bg-panel); border-left:2px solid var(--border-color); z-index:9;">
-            <div class="med-row-total" id="total-${med.id}" style="font-weight:700; color:var(--primary); text-align:center; font-size:1rem; min-width:55px; padding:4px;">0</div>
-        </td>
-        </tr>`;
+        bodyHtml += `</tr>`;
     });
+
+    // SUMMARY ROWS
+    // Row 1: Available Balance Stock
+    bodyHtml += `<tr style="background:rgba(255,255,255,0.04); border-top: 2px solid var(--border-color);">
+        <td colspan="2" style="padding:8px 10px; font-weight:700; font-size:0.8rem; border:1px solid var(--border-color); text-align:left; color:var(--text-primary);">AVAILABLE BALANCE STOCK</td>`;
+    medicines.forEach(med => {
+        bodyHtml += `<td style="text-align:center; font-weight:700; padding:6px 4px; border:1px solid var(--border-color); font-size:0.82rem;">${med.quantity}</td>`;
+    });
+    bodyHtml += `</tr>`;
+
+    // Row 2: Total Request
+    bodyHtml += `<tr style="background:rgba(255,255,255,0.03);">
+        <td colspan="2" style="padding:8px 10px; font-weight:700; font-size:0.8rem; border:1px solid var(--border-color); text-align:left; color:var(--primary);">TOTAL REQUEST</td>`;
+    medicines.forEach(med => {
+        bodyHtml += `<td id="col-total-${med.id}" style="text-align:center; font-weight:700; padding:6px 4px; border:1px solid var(--border-color); font-size:0.82rem; color:var(--primary);">0</td>`;
+    });
+    bodyHtml += `</tr>`;
+
+    // Row 3: Remaining Stock
+    bodyHtml += `<tr>
+        <td colspan="2" style="padding:8px 10px; font-weight:700; font-size:0.8rem; border:1px solid var(--border-color); text-align:left; color:var(--danger);">REMAINING STOCK</td>`;
+    medicines.forEach(med => {
+        bodyHtml += `<td id="col-remain-${med.id}" style="text-align:center; font-weight:700; padding:6px 4px; border:1px solid var(--border-color); font-size:0.82rem; color:var(--danger);">${med.quantity}</td>`;
+    });
+    bodyHtml += `</tr>`;
 
     body.innerHTML = bodyHtml;
 }
 
 window.calculateSampleTotals = () => {
     medicines.forEach(med => {
-        let rowTotal = 0;
+        let colTotal = 0;
         document.querySelectorAll(`.sample-input[data-med="${med.id}"]`).forEach(input => {
-            rowTotal += parseInt(input.value) || 0;
+            colTotal += parseInt(input.value) || 0;
         });
-        const totalEl = document.getElementById(`total-${med.id}`);
-        if (totalEl) totalEl.innerText = rowTotal;
+
+        const totalEl = document.getElementById(`col-total-${med.id}`);
+        const remainEl = document.getElementById(`col-remain-${med.id}`);
+        if (totalEl) totalEl.innerText = colTotal;
+        if (remainEl) {
+            const remaining = med.quantity - colTotal;
+            remainEl.innerText = remaining;
+            remainEl.style.color = remaining < 0 ? 'var(--danger)' : 'var(--primary)';
+        }
     });
 };
 
 window.exportSampleRequestExcel = () => {
-    const table = document.getElementById('bulk-allocation-table');
-    if (!table) return;
-    
     const month = document.getElementById('sample-month-select').options[document.getElementById('sample-month-select').selectedIndex].text;
     const year = document.getElementById('sample-year-input').value;
-    
-    // Create a new workbook and worksheet
+
     const wb = XLSX.utils.book_new();
     const ws_data = [];
-    
-    // Header Row
-    const headerRow = ['Product Name'];
-    doctors.forEach(d => headerRow.push(d.name));
-    headerRow.push('TOTAL');
+
+    // Header
+    const headerRow = ['NO', 'NAME'];
+    medicines.forEach(m => headerRow.push(m.name));
     ws_data.push(headerRow);
-    
-    // Data Rows
-    medicines.forEach(med => {
-        const row = [med.name];
-        let total = 0;
-        doctors.forEach(doc => {
-            const val = parseInt(document.querySelector(`.sample-input[data-med="${med.id}"][data-doc="${doc.id}"]`)?.value) || 0;
-            row.push(val);
-            total += val;
+
+    // Recipient rows
+    doctors.forEach((doc, index) => {
+        const row = [index + 1, doc.name];
+        medicines.forEach(med => {
+            const val = parseInt(document.querySelector(`.sample-input[data-doc="${doc.id}"][data-med="${med.id}"]`)?.value) || 0;
+            row.push(val || '');
         });
-        row.push(total);
         ws_data.push(row);
     });
-    
+
+    // Summary rows
+    const stockRow = ['', 'AVAILABLE BALANCE STOCK'];
+    const totalRow = ['', 'TOTAL REQUEST'];
+    const remainRow = ['', 'REMAINING STOCK'];
+    medicines.forEach(med => {
+        let colTotal = 0;
+        document.querySelectorAll(`.sample-input[data-med="${med.id}"]`).forEach(i => colTotal += parseInt(i.value) || 0);
+        stockRow.push(med.quantity);
+        totalRow.push(colTotal);
+        remainRow.push(med.quantity - colTotal);
+    });
+    ws_data.push(stockRow);
+    ws_data.push(totalRow);
+    ws_data.push(remainRow);
+
     const ws = XLSX.utils.aoa_to_sheet(ws_data);
     XLSX.utils.book_append_sheet(wb, ws, "Sample Request");
     XLSX.writeFile(wb, `Celogen_Sample_Request_${month}_${year}.xlsx`);
@@ -1083,58 +1116,106 @@ window.exportSampleRequestExcel = () => {
 window.printSampleRequest = () => {
     const month = document.getElementById('sample-month-select').options[document.getElementById('sample-month-select').selectedIndex].text;
     const year = document.getElementById('sample-year-input').value;
-    
-    let printContent = `
-        <div style="font-family: Inter, sans-serif; padding: 20px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 2px solid #159a45; padding-bottom: 10px; margin-bottom: 20px;">
-                <div>
-                    <h1 style="color: #159a45; margin: 0;">CELOGEN PHARMA</h1>
-                    <p style="margin: 5px 0; color: #666;">Warehouse Sample Request - ${month} ${year}</p>
-                </div>
-                <div style="text-align: right;">
-                    <p style="margin:0;">Date: ${new Date().toLocaleDateString()}</p>
-                </div>
-            </div>
-            <table border="1" style="width:100%; border-collapse: collapse; font-size: 10px;">
-                <thead>
-                    <tr>
-                        <th style="padding: 5px; text-align: left;">Product Name</th>
-    `;
-    
-    doctors.forEach(d => {
-        printContent += `<th style="writing-mode: vertical-lr; transform: rotate(180deg); padding: 5px;">${d.name}</th>`;
-    });
-    
-    printContent += `
-                        <th style="padding: 5px;">TOTAL</th>
-                    </tr>
-                </thead>
-                <tbody>
-    `;
-    
+    const today = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+
+    // Compute column totals
+    const colTotals = {};
     medicines.forEach(med => {
-        printContent += `<tr><td style="padding: 5px;"><strong>${med.name}</strong></td>`;
         let total = 0;
-        doctors.forEach(doc => {
-            const val = parseInt(document.querySelector(`.sample-input[data-med="${med.id}"][data-doc="${doc.id}"]`)?.value) || 0;
-            printContent += `<td style="text-align: center;">${val || '-'}</td>`;
-            total += val;
-        });
-        printContent += `<td style="text-align: center; font-weight: bold;">${total}</td></tr>`;
+        document.querySelectorAll(`.sample-input[data-med="${med.id}"]`).forEach(i => total += parseInt(i.value) || 0);
+        colTotals[med.id] = total;
     });
-    
-    printContent += `
-                </tbody>
-            </table>
-            <div style="margin-top: 40px; display: flex; justify-content: space-between;">
-                <div style="border-top: 1px solid #000; width: 200px; text-align: center; padding-top: 5px;">Requested By</div>
-                <div style="border-top: 1px solid #000; width: 200px; text-align: center; padding-top: 5px;">Approved By</div>
+
+    // Product header columns
+    let medHeaders = medicines.map(m => `<th style="padding:5px 3px; font-size:9px; font-weight:700; text-align:center; border:1px solid #999; min-width:52px; line-height:1.2;">${m.name}</th>`).join('');
+
+    // Recipient rows
+    let rows = '';
+    doctors.forEach((doc, i) => {
+        let cells = '';
+        medicines.forEach(med => {
+            const val = parseInt(document.querySelector(`.sample-input[data-doc="${doc.id}"][data-med="${med.id}"]`)?.value) || 0;
+            cells += `<td style="text-align:center; padding:4px 2px; border:1px solid #999; font-size:9px;">${val > 0 ? val : ''}</td>`;
+        });
+        rows += `<tr>
+            <td style="text-align:center; padding:4px; border:1px solid #999; font-size:9px; font-weight:600;">${i + 1}</td>
+            <td style="padding:4px 6px; border:1px solid #999; font-size:9px; font-weight:500;">${doc.name}</td>
+            ${cells}
+        </tr>`;
+    });
+
+    // Summary rows
+    let stockCells = medicines.map(m => `<td style="text-align:center; padding:4px; border:1px solid #999; font-size:9px; font-weight:700;">${m.quantity}</td>`).join('');
+    let totalCells = medicines.map(m => `<td style="text-align:center; padding:4px; border:1px solid #999; font-size:9px; font-weight:700; color:#1a7a34;">${colTotals[m.id] || 0}</td>`).join('');
+    let remainCells = medicines.map(m => {
+        const rem = m.quantity - (colTotals[m.id] || 0);
+        return `<td style="text-align:center; padding:4px; border:1px solid #999; font-size:9px; font-weight:700; color:${rem < 0 ? 'red' : '#1a7a34'};">${rem}</td>`;
+    }).join('');
+
+    const printContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Sample Request - ${month} ${year}</title>
+        <style>
+            @media print { body { margin: 0; } }
+            body { font-family: Arial, sans-serif; padding: 15px; font-size: 9px; }
+            table { border-collapse: collapse; width: 100%; }
+            th { background: #f0f0f0; }
+            .title { text-align: center; font-size: 14px; font-weight: 900; color: #1a7a34; letter-spacing: 1px; text-decoration: underline; margin-bottom: 12px; font-family: Arial Black, sans-serif; }
+        </style>
+    </head>
+    <body>
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;">
+            <div></div>
+            <div class="title">SAMPLE REQUEST - MONTH OF ${month.toUpperCase()} ${year}</div>
+            <img src="https://shen6791.github.io/Celogen_inve/logo.png" style="width:45px; height:45px; object-fit:contain;" onerror="this.style.display='none'">
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th style="width:30px; padding:5px; border:1px solid #999; font-size:9px; text-align:center;">NO</th>
+                    <th style="min-width:150px; padding:5px 6px; border:1px solid #999; font-size:9px; text-align:left;">NAME</th>
+                    ${medHeaders}
+                </tr>
+            </thead>
+            <tbody>
+                ${rows}
+                <tr style="background:#f5f5f5;">
+                    <td colspan="2" style="padding:5px 6px; border:1px solid #999; font-size:9px; font-weight:800;">AVAILABLE BALANCE STOCK</td>
+                    ${stockCells}
+                </tr>
+                <tr style="background:#e8f5e9;">
+                    <td colspan="2" style="padding:5px 6px; border:1px solid #999; font-size:9px; font-weight:800; color:#1a7a34;">TOTAL REQUEST</td>
+                    ${totalCells}
+                </tr>
+                <tr style="background:#fff3f3;">
+                    <td colspan="2" style="padding:5px 6px; border:1px solid #999; font-size:9px; font-weight:800; color:red;">REMAINING STOCK</td>
+                    ${remainCells}
+                </tr>
+            </tbody>
+        </table>
+        <div style="margin-top: 30px; display:flex; justify-content:space-between; padding: 0 30px;">
+            <div>
+                <p style="margin:0;">${today}</p>
+                <br><br>
+                <div style="border-top: 1px solid #000; width:180px; text-align:center; padding-top:4px; font-size:9px;">Date</div>
+            </div>
+            <div style="text-align:center;">
+                <br><br><br>
+                <div style="border-top: 1px solid #000; width:180px; text-align:center; padding-top:4px; font-size:9px;">BDM - CELOGEN</div>
+            </div>
+            <div style="text-align:center;">
+                <br><br><br>
+                <div style="border-top: 1px solid #000; width:180px; text-align:center; padding-top:4px; font-size:9px;">APPROVED BY,</div>
             </div>
         </div>
-    `;
+    </body>
+    </html>`;
 
     const printWindow = window.open('', '_blank');
-    printWindow.document.write(`<html><head><title>Sample Request - ${month} ${year}</title></head><body>${printContent}</body></html>`);
+    printWindow.document.write(printContent);
     printWindow.document.close();
     printWindow.print();
 };
+
