@@ -1029,7 +1029,12 @@ function renderSampleRequestGrid() {
     bodyHtml += `<tr style="background:rgba(255,255,255,0.04); border-top: 2px solid var(--border-color);">
         <td colspan="2" style="padding:8px 10px; font-weight:700; font-size:0.8rem; border:1px solid var(--border-color); text-align:left; color:var(--text-primary);">AVAILABLE BALANCE STOCK</td>`;
     medicines.forEach(med => {
-        bodyHtml += `<td style="text-align:center; font-weight:700; padding:6px 4px; border:1px solid var(--border-color); font-size:0.82rem;">${med.quantity}</td>`;
+        bodyHtml += `<td style="padding:3px; text-align:center; border:1px solid var(--border-color);">
+            <input type="number" class="stock-input" data-med="${med.id}" min="0" value="${med.quantity}" oninput="calculateSampleTotals()"
+                style="width:58px; padding:5px 2px; font-size:0.82rem; background:transparent; border:1px solid transparent; color:var(--text-primary); text-align:center; border-radius:4px; outline:none; font-weight:700;"
+                onfocus="this.style.border='1px solid var(--primary)'"
+                onblur="this.style.border='1px solid transparent'">
+        </td>`;
     });
     bodyHtml += `</tr>`;
 
@@ -1045,7 +1050,7 @@ function renderSampleRequestGrid() {
     bodyHtml += `<tr>
         <td colspan="2" style="padding:8px 10px; font-weight:700; font-size:0.8rem; border:1px solid var(--border-color); text-align:left; color:var(--danger);">REMAINING STOCK</td>`;
     medicines.forEach(med => {
-        bodyHtml += `<td id="col-remain-${med.id}" style="text-align:center; font-weight:700; padding:6px 4px; border:1px solid var(--border-color); font-size:0.82rem; color:var(--danger);">${med.quantity}</td>`;
+        bodyHtml += `<td id="col-remain-${med.id}" style="text-align:center; font-weight:700; padding:6px 4px; border:1px solid var(--border-color); font-size:0.82rem;">${med.quantity}</td>`;
     });
     bodyHtml += `</tr>`;
 
@@ -1059,11 +1064,14 @@ window.calculateSampleTotals = () => {
             colTotal += parseInt(input.value) || 0;
         });
 
+        const availInput = document.querySelector(`.stock-input[data-med="${med.id}"]`);
+        const availStock = parseInt(availInput?.value) || 0;
+
         const totalEl = document.getElementById(`col-total-${med.id}`);
         const remainEl = document.getElementById(`col-remain-${med.id}`);
         if (totalEl) totalEl.innerText = colTotal;
         if (remainEl) {
-            const remaining = med.quantity - colTotal;
+            const remaining = availStock - colTotal;
             remainEl.innerText = remaining;
             remainEl.style.color = remaining < 0 ? 'var(--danger)' : 'var(--primary)';
         }
@@ -1099,9 +1107,10 @@ window.exportSampleRequestExcel = () => {
     medicines.forEach(med => {
         let colTotal = 0;
         document.querySelectorAll(`.sample-input[data-med="${med.id}"]`).forEach(i => colTotal += parseInt(i.value) || 0);
-        stockRow.push(med.quantity);
+        const availStock = parseInt(document.querySelector(`.stock-input[data-med="${med.id}"]`)?.value) || 0;
+        stockRow.push(availStock);
         totalRow.push(colTotal);
-        remainRow.push(med.quantity - colTotal);
+        remainRow.push(availStock - colTotal);
     });
     ws_data.push(stockRow);
     ws_data.push(totalRow);
@@ -1144,11 +1153,15 @@ window.printSampleRequest = () => {
         </tr>`;
     });
 
-    // Summary rows
-    let stockCells = medicines.map(m => `<td style="text-align:center; padding:4px; border:1px solid #999; font-size:9px; font-weight:700;">${m.quantity}</td>`).join('');
+    // Summary rows - read from manual stock inputs
+    let stockCells = medicines.map(m => {
+        const availStock = parseInt(document.querySelector(`.stock-input[data-med="${m.id}"]`)?.value) || 0;
+        return `<td style="text-align:center; padding:4px; border:1px solid #999; font-size:9px; font-weight:700;">${availStock}</td>`;
+    }).join('');
     let totalCells = medicines.map(m => `<td style="text-align:center; padding:4px; border:1px solid #999; font-size:9px; font-weight:700; color:#1a7a34;">${colTotals[m.id] || 0}</td>`).join('');
     let remainCells = medicines.map(m => {
-        const rem = m.quantity - (colTotals[m.id] || 0);
+        const availStock = parseInt(document.querySelector(`.stock-input[data-med="${m.id}"]`)?.value) || 0;
+        const rem = availStock - (colTotals[m.id] || 0);
         return `<td style="text-align:center; padding:4px; border:1px solid #999; font-size:9px; font-weight:700; color:${rem < 0 ? 'red' : '#1a7a34'};">${rem}</td>`;
     }).join('');
 
