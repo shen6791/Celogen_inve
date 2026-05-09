@@ -121,7 +121,13 @@
             <div class="content-wrapper">
                 <!-- Dashboard Section -->
                 <section id="dashboard" class="page-section active">
-                    <h2 class="section-title">Overview</h2>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                        <h2 class="section-title" style="margin-bottom: 0;">Overview</h2>
+                        <button class="btn-secondary" onclick="loadDataFromGas()" style="padding: 8px 16px; font-size: 0.85rem;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" style="margin-right: 8px;"><path d="M23 4v6h-6"></path><path d="M1 20v-6h6"></path><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                            Refresh Data
+                        </button>
+                    </div>
                     <div class="stats-grid">
                         <div class="stat-card glass-panel">
                             <div class="stat-icon purple">
@@ -706,6 +712,6 @@
     <!-- Toast Notification -->
     <div id="toast-container" class="toast-container"></div>
 
-    <script src="script.js"></script>
+    <script src="script.js?v=2.0"></script>
 </body>
 </html>

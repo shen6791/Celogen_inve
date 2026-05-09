@@ -5,7 +5,10 @@ let medicines = [];
 let issues = [];
 let doctors = [];
 let activities = [];
-let users = [];
+let users = [
+    { username: 'Admin', role: 'Admin', password: 'admin123' },
+    { username: 'Assistant', role: 'Assistant', password: 'staff123' }
+];
 
 let currentRole = sessionStorage.getItem('celogen_role') || null;
 let currentUser = sessionStorage.getItem('celogen_user') || null;
@@ -14,7 +17,7 @@ let saveTimeout = null;
 
 async function loadDataFromGas() {
     try {
-        const response = await fetch(GAS_URL);
+        const response = await fetch(GAS_URL, { redirect: 'follow' });
         if (!response.ok) throw new Error("Network response was not ok");
         const dataStr = await response.text();
         
