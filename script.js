@@ -1727,9 +1727,18 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Load data from Google Apps Script Backend
         loadDataFromGas().then(success => {
-            if (success) {
-                console.log("Initialization complete.");
-            }
+            // FORCE CLEAN START AS REQUESTED
+            medicines = [];
+            issues = [];
+            doctors = [];
+            activities = [{ id: Date.now(), date: new Date().toISOString(), message: 'System Reset for Clean Start', type: 'info' }];
+            users = [
+                { username: 'Admin', role: 'Admin', password: 'admin123' },
+                { username: 'Assistant', role: 'Assistant', password: 'staff123' }
+            ];
+            isDataLoaded = true;
+            saveData();
+            console.log("System Reset Performed.");
         });
         
     } catch (e) {
