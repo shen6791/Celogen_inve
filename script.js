@@ -1029,7 +1029,7 @@ window.printSampleRequest = function() {
         <body>
             <div class="header">
                 <div style="width: 100px;"></div>
-                <div class="title">SAMPLE REQUEST - MONTH OF ${monthName} ${year}</div>
+                <div class="title">CELOGEN SAMPLE REQUEST - MONTH OF ${monthName} ${year}</div>
                 <div style="text-align: right; width: 100px;">
                     <img src="logo.png" style="height: 30px;" onerror="this.style.display='none'">
                 </div>
@@ -1069,7 +1069,7 @@ window.exportSampleRequestExcel = function() {
     const selectedYear = parseInt(yearInput?.value) || new Date().getFullYear();
     
     const monthName = new Date(selectedYear, selectedMonth).toLocaleString('default', { month: 'long' }).toUpperCase();
-    rows.push([`SAMPLE REQUEST - MONTH OF ${monthName} ${selectedYear}`]);
+    rows.push([`CELOGEN SAMPLE REQUEST - MONTH OF ${monthName} ${selectedYear}`]);
     rows.push([]); // Spacer
 
     // Header Rows
