@@ -1181,7 +1181,7 @@ window.printSampleRequest = () => {
     <body>
         <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;">
             <div></div>
-            <div class="title">SAMPLE REQUEST - MONTH OF ${month.toUpperCase()} ${year}</div>
+            <div class="title">CELOGEN SAMPLE REQUEST - MONTH OF ${month.toUpperCase()} ${year}</div>
             <img src="https://shen6791.github.io/Celogen_inve/logo.png" style="width:45px; height:45px; object-fit:contain;" onerror="this.style.display='none'">
         </div>
         <table>
