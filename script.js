@@ -1,9 +1,52 @@
 const GAS_URL = "https://script.google.com/macros/s/AKfycbxt1_NeYXWt6QPna7a6_GEFCJRcWpU4Yk-Cef0uWEbfKSaILd0iQDc8c_Is6_pO7T8icQ/exec";
 
 // --- CORE DATA STORE ---
-let medicines = [];
+let medicines = [
+    { id: 'M001', name: 'ATOGEN 10mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 0, status: 'out', minThreshold: 50 },
+    { id: 'M002', name: 'ATOGEN 20 mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 0, status: 'out', minThreshold: 50 },
+    { id: 'M003', name: 'ATOGEN 40 mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 0, status: 'out', minThreshold: 50 },
+    { id: 'M004', name: 'CLOPIL 75mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 0, status: 'out', minThreshold: 50 },
+    { id: 'M005', name: 'LK 50mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 0, status: 'out', minThreshold: 50 },
+    { id: 'M006', name: 'LK 25mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 0, status: 'out', minThreshold: 50 },
+    { id: 'M007', name: 'SITABEST 50mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 0, status: 'out', minThreshold: 50 },
+    { id: 'M008', name: 'SITABEST 100mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 0, status: 'out', minThreshold: 50 },
+    { id: 'M009', name: 'CELOMET 850mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 0, status: 'out', minThreshold: 50 },
+    { id: 'M010', name: 'CELOMET SR 500mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 0, status: 'out', minThreshold: 50 },
+    { id: 'M011', name: 'EMPABEST 10mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 0, status: 'out', minThreshold: 50 },
+    { id: 'M012', name: 'EMPABEST 25mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 0, status: 'out', minThreshold: 50 },
+    { id: 'M013', name: 'EWON 400mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 0, status: 'out', minThreshold: 50 },
+    { id: 'M014', name: 'PANTOGEN 20mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 0, status: 'out', minThreshold: 50 },
+    { id: 'M015', name: 'PANTOGEN 40mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 0, status: 'out', minThreshold: 50 }
+];
+
+let doctors = [
+    { id: 'D001', name: 'M.G.L.W.K.DHARMAPALA', specialty: 'Medical Representative', team: '' },
+    { id: 'D002', name: 'G.RICHERD PAUL', specialty: 'Medical Representative', team: '' },
+    { id: 'D003', name: 'S.D.P.NARAMPANAWA', specialty: 'Medical Representative', team: '' },
+    { id: 'D004', name: 'MANIMOHAN', specialty: 'Medical Representative', team: '' },
+    { id: 'D005', name: 'ASIRI NUWAN', specialty: 'Medical Representative', team: '' },
+    { id: 'D006', name: 'GIHAN DHANUSHKA', specialty: 'Medical Representative', team: '' },
+    { id: 'D007', name: 'ROSHEN THARAKA SAMARAWICKRAMA', specialty: 'Medical Representative', team: '' },
+    { id: 'D008', name: 'N.A.THARINDU DINUSHAN WIJESIRI', specialty: 'Medical Representative', team: '' },
+    { id: 'D009', name: 'KASUN WIMALASIRI', specialty: 'Medical Representative', team: '' },
+    { id: 'D010', name: 'KANISHKA GIHAN', specialty: 'Medical Representative', team: '' },
+    { id: 'D011', name: 'SINDUJAN', specialty: 'Medical Representative', team: '' },
+    { id: 'D012', name: 'PEYUMAL NIROSHAN', specialty: 'Medical Representative', team: '' },
+    { id: 'D013', name: 'P.M.WELAGEDARA', specialty: 'Medical Representative', team: '' },
+    { id: 'D014', name: 'ISHAN MUNASINGHE', specialty: 'Medical Representative', team: '' },
+    { id: 'D015', name: 'IMASH KODAGODA', specialty: 'Medical Representative', team: '' },
+    { id: 'D016', name: 'ASIRI CHAMARA', specialty: 'Medical Representative', team: '' },
+    { id: 'D017', name: 'SHERAN CHRISTOPHER', specialty: 'Medical Representative', team: '' },
+    { id: 'D018', name: 'K.S. PRAGATHAN', specialty: 'Medical Representative', team: '' },
+    { id: 'D019', name: 'PALITHA RUWAN', specialty: 'Medical Representative', team: '' },
+    { id: 'D020', name: 'ARJUNA SUDARSHANA', specialty: 'Medical Representative', team: '' },
+    { id: 'D021', name: 'NIROSHAN PATHMANATHAN', specialty: 'Medical Representative', team: '' },
+    { id: 'D022', name: 'DR. WARUNA GUNATHILAKA', specialty: 'Doctor', team: '' },
+    { id: 'D023', name: 'DR. SAMPATH WITHANAWASAM', specialty: 'Doctor', team: '' },
+    { id: 'D024', name: 'DR.RUWAN EKANAYAKE', specialty: 'Doctor', team: '' }
+];
+
 let issues = [];
-let doctors = [];
 let activities = [];
 let users = [
     { username: 'Admin', role: 'Admin', password: 'admin123' },
@@ -42,31 +85,27 @@ async function loadDataFromGas() {
         
         if (text && text.trim().startsWith('{')) {
             const data = JSON.parse(text);
-            medicines = data.medicines || [];
-            issues = data.issues || [];
-            doctors = data.doctors || [];
-            activities = data.activities || [];
-            // Merge users but keep defaults
-            const cloudUsers = data.users || [];
-            if (cloudUsers.length > 0) users = cloudUsers;
+            // ONLY update if cloud data exists and has items
+            if (data.medicines && data.medicines.length > 0) medicines = data.medicines;
+            if (data.doctors && data.doctors.length > 0) doctors = data.doctors;
+            if (data.issues) issues = data.issues;
+            if (data.activities) activities = data.activities;
+            if (data.users && data.users.length > 0) users = data.users;
         }
         
         isDataLoaded = true;
         console.log("Data sync complete.");
         refreshAllUI();
     } catch (e) {
-        console.warn("Could not load cloud data, using local state.", e);
-        isDataLoaded = true; // Allow saving local changes
+        console.warn("Could not load cloud data, using defaults.", e);
+        isDataLoaded = true; 
         refreshAllUI();
     }
 }
 
 function saveData() {
     if (!isDataLoaded) return;
-    
     const payload = { medicines, issues, doctors, activities, users };
-    
-    // UI update happens immediately for speed
     refreshAllUI();
     
     if (saveTimeout) clearTimeout(saveTimeout);
@@ -86,9 +125,9 @@ function refreshAllUI() {
     renderIssues();
     renderMedicineOptions();
     renderActivityFeed();
-    if (typeof renderDoctors === 'function') renderDoctors();
-    if (typeof renderDoctorOptions === 'function') renderDoctorOptions();
-    if (currentRole === 'Admin' && typeof renderUsers === 'function') renderUsers();
+    renderDoctors();
+    renderDoctorOptions();
+    if (currentRole === 'Admin') renderUsers();
     updateUIByRole();
 }
 
@@ -120,7 +159,7 @@ document.getElementById('login-form')?.addEventListener('submit', (e) => {
         sessionStorage.setItem('celogen_user', user.username);
         errorEl.style.display = 'none';
         checkAuth();
-        showToast(`Welcome, ${user.username}`);
+        showToast(`Welcome back, ${user.username}`);
         logActivity(`User ${user.username} logged in`, 'info');
     } else {
         errorEl.style.display = 'block';
@@ -170,7 +209,13 @@ function showToast(message, type = 'success') {
     }, 3000);
 }
 
-// --- UI COMPONENTS (Simplified) ---
+function animateValue(id, end) {
+    const obj = document.getElementById(id);
+    if (!obj) return;
+    obj.innerText = end;
+}
+
+// --- UI COMPONENTS ---
 function updateDashboard() {
     const totalMeds = medicines.length;
     const totalIssued = issues.filter(i => i.status !== 'cancelled').reduce((s, i) => s + i.quantity, 0);
@@ -185,12 +230,16 @@ function updateDashboard() {
         badge.innerText = lowStock;
         badge.style.display = lowStock > 0 ? 'block' : 'none';
     }
-}
 
-function animateValue(id, end) {
-    const obj = document.getElementById(id);
-    if (!obj) return;
-    obj.innerText = end; // Simplified for robustness
+    const recentIssuesBody = document.querySelector('#recent-issues-table tbody');
+    if (recentIssuesBody) {
+        recentIssuesBody.innerHTML = issues.length ? '' : '<tr><td colspan="4" style="text-align:center;">No recent issues.</td></tr>';
+        issues.filter(i => i.status !== 'cancelled').slice(0, 5).forEach(issue => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td><strong>${issue.medicineName}</strong></td><td>${issue.doctor}</td><td>${issue.quantity}</td><td>${new Date(issue.date).toLocaleDateString()}</td>`;
+            recentIssuesBody.appendChild(tr);
+        });
+    }
 }
 
 function renderInventory() {
@@ -200,8 +249,9 @@ function renderInventory() {
     
     medicines.forEach(med => {
         const tr = document.createElement('tr');
-        const statusClass = med.quantity <= 0 ? 'status-out' : (med.quantity < (med.minThreshold || 50) ? 'status-low' : 'status-ok');
-        const statusText = med.quantity <= 0 ? 'Out of Stock' : (med.quantity < (med.minThreshold || 50) ? 'Low Stock' : 'In Stock');
+        const threshold = med.minThreshold || 50;
+        const statusClass = med.quantity <= 0 ? 'status-out' : (med.quantity < threshold ? 'status-low' : 'status-ok');
+        const statusText = med.quantity <= 0 ? 'Out of Stock' : (med.quantity < threshold ? 'Low Stock' : 'In Stock');
         
         tr.innerHTML = `
             <td>${med.id}</td>
@@ -221,6 +271,179 @@ function renderInventory() {
         tbody.appendChild(tr);
     });
 }
+
+function renderDoctors() {
+    const tbody = document.querySelector('#doctors-table tbody');
+    if (!tbody) return;
+    tbody.innerHTML = doctors.length ? '' : '<tr><td colspan="5" style="text-align:center;">No recipients found.</td></tr>';
+    
+    doctors.forEach(doc => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${doc.id}</td>
+            <td><strong>${doc.name}</strong></td>
+            <td>${doc.specialty}</td>
+            <td>${doc.team || '-'}</td>
+            <td>
+                <button class="btn-icon admin-only" onclick="deleteDoctor('${doc.id}')">Del</button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function renderMedicineOptions() {
+    document.querySelectorAll('.issue-medicine').forEach(select => {
+        const val = select.value;
+        select.innerHTML = '<option value="">Select Product...</option>';
+        medicines.forEach(m => {
+            const opt = document.createElement('option');
+            opt.value = m.id;
+            opt.textContent = `${m.name} (Stock: ${m.quantity})`;
+            select.appendChild(opt);
+        });
+        select.value = val;
+    });
+}
+
+function renderDoctorOptions() {
+    const select = document.getElementById('issue-doctor');
+    if (!select) return;
+    const val = select.value;
+    select.innerHTML = '<option value="">Select Recipient...</option>';
+    doctors.sort((a,b) => a.name.localeCompare(b.name)).forEach(d => {
+        const opt = document.createElement('option');
+        opt.value = d.id;
+        opt.textContent = d.name;
+        select.appendChild(opt);
+    });
+    select.value = val;
+}
+
+function renderIssues(filtered = null) {
+    const tbody = document.querySelector('#history-table tbody');
+    if (!tbody) return;
+    const data = filtered || issues;
+    tbody.innerHTML = data.length ? '' : '<tr><td colspan="7" style="text-align:center;">No history.</td></tr>';
+    
+    [...data].sort((a,b) => b.id - a.id).forEach(issue => {
+        const tr = document.createElement('tr');
+        if (issue.status === 'cancelled') tr.style.opacity = '0.5';
+        tr.innerHTML = `
+            <td>${new Date(issue.date).toLocaleString()}</td>
+            <td>${issue.doctor}</td>
+            <td>${issue.medicineName}</td>
+            <td>${issue.batch}</td>
+            <td><strong>${issue.quantity}</strong></td>
+            <td>${issue.status}</td>
+            <td>
+                <button class="btn-text" onclick="printReceipt(${issue.id})">Gate Pass</button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function renderActivityFeed() {
+    const feed = document.getElementById('activity-feed');
+    if (!feed) return;
+    feed.innerHTML = activities.length ? '' : '<p style="padding:10px;">No activity.</p>';
+    activities.slice(0, 10).forEach(a => {
+        const div = document.createElement('div');
+        div.style.padding = '8px 0';
+        div.style.borderBottom = '1px solid var(--border-color)';
+        div.innerHTML = `<small style="color:#888;">${new Date(a.date).toLocaleTimeString()}</small> | ${a.message}`;
+        feed.appendChild(div);
+    });
+}
+
+function renderUsers() {
+    const tbody = document.querySelector('#users-table tbody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    users.forEach((u, index) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${u.username}</td><td>${u.role}</td><td>••••••</td><td><button class="btn-icon" onclick="deleteUserAccount(${index})">Del</button></td>`;
+        tbody.appendChild(tr);
+    });
+}
+
+// --- ACTIONS ---
+window.adjustStock = (id) => {
+    const qty = prompt("Enter quantity to ADD to stock:");
+    if (qty === null || qty === "") return;
+    const val = parseInt(qty);
+    const med = medicines.find(m => m.id === id);
+    if (med && !isNaN(val)) {
+        med.quantity += val;
+        logActivity(`Stock Added: ${val} units of ${med.name}`, 'success');
+        saveData();
+    }
+};
+
+window.deleteMedicine = (id) => {
+    if(confirm("Delete this product permanently?")) {
+        medicines = medicines.filter(m => m.id !== id);
+        logActivity(`Deleted product ID ${id}`, 'danger');
+        saveData();
+    }
+};
+
+window.deleteDoctor = (id) => {
+    if(confirm("Delete this recipient?")) {
+        doctors = doctors.filter(d => d.id !== id);
+        logActivity(`Deleted recipient ID ${id}`, 'danger');
+        saveData();
+    }
+};
+
+window.deleteUserAccount = (index) => {
+    if(confirm("Delete this user account?")) {
+        const user = users[index];
+        if (user.username === 'Admin') return alert("Cannot delete main Admin");
+        users.splice(index, 1);
+        saveData();
+    }
+};
+
+// --- FORM SUBMISSIONS ---
+document.getElementById('issue-form')?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const doctorId = document.getElementById('issue-doctor').value;
+    const doctor = doctors.find(d => d.id === doctorId)?.name;
+    const notes = document.getElementById('issue-notes').value;
+    const transactionId = Date.now();
+    
+    document.querySelectorAll('.issue-item-row').forEach(row => {
+        const medId = row.querySelector('.issue-medicine').value;
+        const qty = parseInt(row.querySelector('.issue-quantity').value);
+        const med = medicines.find(m => m.id === medId);
+        
+        if (med && qty > 0) {
+            if (qty > med.quantity) return showToast(`Not enough ${med.name}`, 'error');
+            
+            med.quantity -= qty;
+            const issueId = Date.now() + Math.random();
+            issues.unshift({
+                id: issueId,
+                transactionId,
+                date: new Date().toISOString(),
+                doctor,
+                medicineId: med.id,
+                medicineName: med.name,
+                batch: med.batch,
+                quantity: qty,
+                notes,
+                status: 'issued'
+            });
+            logActivity(`Issued ${qty} ${med.name} to ${doctor}`, 'success');
+        }
+    });
+    
+    saveData();
+    e.target.reset();
+    showToast("Samples issued successfully!");
+});
 
 // --- NAVIGATION ---
 document.querySelectorAll('.nav-item').forEach(btn => {
@@ -242,90 +465,14 @@ function initTheme() {
     if (theme === 'light') document.body.classList.add('light-theme');
 }
 
-// (Rest of the functions like renderIssues, renderActivityFeed, etc. would go here, 
-// but for the sake of getting the user logged in and stable, we'll keep it focused)
-// I will include the missing functions now to ensure a complete app.
-
-function renderIssues(filtered = null) {
-    const tbody = document.querySelector('#history-table tbody');
-    if (!tbody) return;
-    const data = filtered || issues;
-    tbody.innerHTML = data.length ? '' : '<tr><td colspan="7" style="text-align:center;">No history.</td></tr>';
-    
-    data.sort((a,b) => b.id - a.id).forEach(issue => {
-        const tr = document.createElement('tr');
-        if (issue.status === 'cancelled') tr.style.opacity = '0.5';
-        tr.innerHTML = `
-            <td>${new Date(issue.date).toLocaleString()}</td>
-            <td>${issue.doctor}</td>
-            <td>${issue.medicineName}</td>
-            <td>${issue.batch}</td>
-            <td>${issue.quantity}</td>
-            <td>${issue.status}</td>
-            <td>
-                <button class="btn-text" onclick="printReceipt(${issue.id})">Gate Pass</button>
-            </td>
-        `;
-        tbody.appendChild(tr);
-    });
-}
-
-function renderMedicineOptions() {
-    document.querySelectorAll('.issue-medicine').forEach(select => {
-        const val = select.value;
-        select.innerHTML = '<option value="">Select Product...</option>';
-        medicines.forEach(m => {
-            const opt = document.createElement('option');
-            opt.value = m.id;
-            opt.textContent = `${m.name} (Stock: ${m.quantity})`;
-            select.appendChild(opt);
-        });
-        select.value = val;
-    });
-}
-
-function renderActivityFeed() {
-    const feed = document.getElementById('activity-feed');
-    if (!feed) return;
-    feed.innerHTML = activities.length ? '' : '<p style="padding:10px;">No activity.</p>';
-    activities.slice(0, 10).forEach(a => {
-        const div = document.createElement('div');
-        div.style.padding = '5px 0';
-        div.style.borderBottom = '1px solid #333';
-        div.innerHTML = `<small style="color:#888;">${new Date(a.date).toLocaleTimeString()}</small> | ${a.message}`;
-        feed.appendChild(div);
-    });
-}
-
-// --- MISSING STUBS TO PREVENT ERRORS ---
-window.openEditMedicineModal = (id) => { /* logic */ };
-window.adjustStock = (id) => {
-    const qty = prompt("Enter quantity to add:");
-    if (!qty) return;
-    const med = medicines.find(m => m.id === id);
-    if (med) {
-        med.quantity += parseInt(qty);
-        logActivity(`Adjusted stock for ${med.name}: +${qty}`);
-        saveData();
-    }
-};
-window.deleteMedicine = (id) => {
-    if(confirm("Delete product?")) {
-        medicines = medicines.filter(m => m.id !== id);
-        saveData();
-    }
-};
-window.printReceipt = (id) => { alert("Gate Pass printing coming soon."); };
-window.renderSampleRequestGrid = () => { /* logic */ };
-window.initTheme = initTheme;
 window.toggleTheme = () => {
     const isLight = document.body.classList.toggle('light-theme');
     localStorage.setItem('celogen_theme', isLight ? 'light' : 'dark');
 };
 
-// --- DATA RESET (CLEAN START) ---
+// --- DATA RESET ---
 window.cleanStart = () => {
-    if(confirm("Wipe ALL data?")) {
+    if(confirm("⚠️ WIPE EVERYTHING? This cannot be undone.")) {
         medicines = [];
         issues = [];
         doctors = [];
@@ -334,3 +481,10 @@ window.cleanStart = () => {
         location.reload();
     }
 };
+
+function renderSampleRequestGrid() {
+    // Basic implementation for warehouse view
+    const grid = document.getElementById('sample-request-grid');
+    if (!grid) return;
+    grid.innerHTML = '<h3>Request Samples Grid Coming Soon</h3>';
+}
