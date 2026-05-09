@@ -1,95 +1,108 @@
+// Firebase Configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyAZ3RfyNTFvoHEWnmg98nLsgbnKTNJ5bRE",
+  authDomain: "celogen-inventory.firebaseapp.com",
+  projectId: "celogen-inventory",
+  storageBucket: "celogen-inventory.firebasestorage.app",
+  messagingSenderId: "367144552276",
+  appId: "1:367144552276:web:46b1ade9da7cafb9e9aac1",
+  measurementId: "G-NTX3R0WC0K"
+};
+
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const auth = firebase.auth();
+
 // Data Store
-let medicines = JSON.parse(localStorage.getItem('medicines')) || [
-    { id: 'M001', name: 'ATOGEN 10mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 1000, status: 'ok', minThreshold: 100 },
-    { id: 'M002', name: 'ATOGEN 20 mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 1000, status: 'ok', minThreshold: 100 },
-    { id: 'M003', name: 'ATOGEN 40 mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 1000, status: 'ok', minThreshold: 100 },
-    { id: 'M004', name: 'CLOPIL 75mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 1000, status: 'ok', minThreshold: 100 },
-    { id: 'M005', name: 'LK 50mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 1000, status: 'ok', minThreshold: 100 },
-    { id: 'M006', name: 'LK 25mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 1000, status: 'ok', minThreshold: 100 },
-    { id: 'M007', name: 'SITABEST 50mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 1000, status: 'ok', minThreshold: 100 },
-    { id: 'M008', name: 'SITABEST 100mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 1000, status: 'ok', minThreshold: 100 },
-    { id: 'M009', name: 'CELOMET 850mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 1000, status: 'ok', minThreshold: 100 },
-    { id: 'M010', name: 'CELOMET SR 500mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 1000, status: 'ok', minThreshold: 100 },
-    { id: 'M011', name: 'EMPABEST 10mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 1000, status: 'ok', minThreshold: 100 },
-    { id: 'M012', name: 'EMPABEST 25mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 1000, status: 'ok', minThreshold: 100 },
-    { id: 'M013', name: 'EWON 400mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 1000, status: 'ok', minThreshold: 100 },
-    { id: 'M014', name: 'PANTOGEN 20mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 1000, status: 'ok', minThreshold: 100 },
-    { id: 'M015', name: 'PANTOGEN 40mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 1000, status: 'ok', minThreshold: 100 },
-];
+let medicines = [];
+let issues = [];
+let doctors = [];
+let activities = [];
+let users = [];
 
-let issues = JSON.parse(localStorage.getItem('issues')) || [
-    { id: 1, date: new Date().toISOString(), doctor: 'Dr. John Doe', medicineId: 'M001', medicineName: 'Amoxicillin 500mg', batch: 'B-2023-A', quantity: 50, status: 'issued' }
-];
+let currentRole = null;
+let currentUser = null;
 
-let doctors = JSON.parse(localStorage.getItem('doctors')) || [
-    { id: 'D001', name: 'M.G.L.W.K.DHARMAPALA', team: 'A', specialty: 'Medical Representative' },
-    { id: 'D002', name: 'G.RICHERD PAUL', team: 'A', specialty: 'Medical Representative' },
-    { id: 'D003', name: 'S.D.P.NARAMPANAWA', team: 'B', specialty: 'Medical Representative' },
-    { id: 'D005', name: 'MANIMOHAN', team: 'B', specialty: 'Medical Representative' },
-    { id: 'D006', name: 'ASIRI NUWAN', team: 'C', specialty: 'Medical Representative' },
-    { id: 'D007', name: 'GIHAN DHANUSHKA', team: 'C', specialty: 'Medical Representative' },
-    { id: 'D008', name: 'ROSHEN THARAKA SAMARAWICKRAMA', team: 'D', specialty: 'Medical Representative' },
-    { id: 'D009', name: 'PRABHATH MADAGAMA', team: 'D', specialty: 'Medical Representative' },
-    { id: 'D010', name: 'N.A.THARINDU DINUSHAN WIJESIRI', team: 'E', specialty: 'Medical Representative' },
-    { id: 'D011', name: 'KASUN WIMALASIRI', team: 'E', specialty: 'Medical Representative' },
-    { id: 'D012', name: 'KANISHKA GIHAN', team: 'F', specialty: 'Medical Representative' },
-    { id: 'D013', name: 'SINDUJAN', team: 'F', specialty: 'Medical Representative' },
-    { id: 'D014', name: 'PEYUMAL NIROSHAN', team: 'G', specialty: 'Medical Representative' },
-    { id: 'D015', name: 'PASAN', team: 'G', specialty: 'Medical Representative' },
-    { id: 'D016', name: 'P.M.WELAGEDARA', team: 'H', specialty: 'Medical Representative' },
-    { id: 'D017', name: 'ISHAN MUNASINGHE', team: 'H', specialty: 'Medical Representative' },
-    { id: 'D018', name: 'IMASH KODAGODA', team: 'I', specialty: 'Medical Representative' },
-    { id: 'D019', name: 'ASIRI CHAMARA', team: 'I', specialty: 'Medical Representative' },
-    { id: 'D020', name: 'SHERAN CHRISTOPHER', team: 'J', specialty: 'Medical Representative' },
-    { id: 'D021', name: 'K.S. PRAGATHAN', team: 'J', specialty: 'Medical Representative' },
-    { id: 'D022', name: 'PALITHA RUWAN', team: 'K', specialty: 'Medical Representative' },
-    { id: 'D023', name: 'ARJUNA SUDARSHANA', team: 'K', specialty: 'Medical Representative' },
-    { id: 'D024', name: 'NIROSHAN PATHMANATHAN', team: 'L', specialty: 'Medical Representative' },
-    { id: 'D025', name: 'DR. WARUNA GUNATHILAKA', team: 'L', specialty: 'Doctor' },
-    { id: 'D026', name: 'DR. SAMPATH WITHANAWASAM', team: 'M', specialty: 'Doctor' },
-    { id: 'D027', name: 'DR. RUWAN EKANAYAKE', team: 'M', specialty: 'Doctor' }
-];
+// Initialize Firebase Listeners
+db.collection("store").doc("medicines").onSnapshot(doc => {
+    if (doc.exists) {
+        medicines = doc.data().data || [];
+        renderInventory();
+        updateDashboard();
+        renderMedicineOptions();
+        if (typeof renderHealthChart === 'function') renderHealthChart();
+        if (typeof renderAlerts === 'function') renderAlerts();
+    }
+});
 
-let activities = JSON.parse(localStorage.getItem('activities')) || [
-    { id: 1, date: new Date().toISOString(), message: 'System Initialized', type: 'info' }
-];
+db.collection("store").doc("issues").onSnapshot(doc => {
+    if (doc.exists) {
+        issues = doc.data().data || [];
+        renderIssues();
+        updateDashboard();
+        if (typeof renderUsageReport === 'function') renderUsageReport();
+        if (typeof populateYearFilter === 'function') populateYearFilter();
+    }
+});
 
-let users = JSON.parse(localStorage.getItem('users')) || [
-    { username: 'Admin', role: 'Admin', password: 'admin123' },
-    { username: 'Assistant', role: 'Assistant', password: 'staff123' }
-];
+db.collection("store").doc("doctors").onSnapshot(doc => {
+    if (doc.exists) {
+        doctors = doc.data().data || [];
+        if (typeof renderDoctors === 'function') renderDoctors();
+        if (typeof renderDoctorOptions === 'function') renderDoctorOptions();
+    }
+});
 
-// Safety: Ensure at least Admin exists
-if (!users.find(u => u.username === 'Admin')) {
-    users.push({ username: 'Admin', role: 'Admin', password: 'admin123' });
-}
+db.collection("store").doc("activities").onSnapshot(doc => {
+    if (doc.exists) {
+        activities = doc.data().data || [];
+        renderActivityFeed();
+    }
+});
 
-let currentRole = sessionStorage.getItem('celogen_role') || null;
-let currentUser = sessionStorage.getItem('celogen_user') || null;
+db.collection("store").doc("users").onSnapshot(doc => {
+    if (doc.exists) {
+        users = doc.data().data || [];
+        if (currentRole === 'Admin') renderUsers();
+    }
+});
 
-// Utility: Save to local storage
+auth.onAuthStateChanged(user => {
+    if (user) {
+        // Find role from users array if loaded, else wait
+        const checkRoleInterval = setInterval(() => {
+            if (users.length > 0) {
+                clearInterval(checkRoleInterval);
+                const matchedUser = users.find(u => (u.username.toLowerCase() + '@celogen.local') === user.email);
+                if (matchedUser) {
+                    currentRole = matchedUser.role;
+                    currentUser = matchedUser.username;
+                    checkAuth();
+                }
+            } else if (user.email === 'admin@celogen.local') {
+                clearInterval(checkRoleInterval);
+                currentRole = 'Admin';
+                currentUser = 'Admin';
+                checkAuth();
+            }
+        }, 500);
+    } else {
+        currentRole = null;
+        currentUser = null;
+        checkAuth();
+    }
+});
+
+// Utility: Save to Firestore
 function saveData() {
-    localStorage.setItem('medicines', JSON.stringify(medicines));
-    localStorage.setItem('issues', JSON.stringify(issues));
-    localStorage.setItem('activities', JSON.stringify(activities));
-    localStorage.setItem('doctors', JSON.stringify(doctors));
-    localStorage.setItem('users', JSON.stringify(users));
-    
-    updateDashboard();
-    renderInventory();
-    renderIssues();
-    renderMedicineOptions();
-    renderActivityFeed();
-    if (typeof renderChart === 'function') renderChart();
-    if (typeof renderDoctors === 'function') renderDoctors();
-    if (typeof renderDoctorOptions === 'function') renderDoctorOptions();
-    if (typeof renderAlerts === 'function') renderAlerts();
-    if (typeof renderHealthChart === 'function') renderHealthChart();
-    if (typeof renderUsageReport === 'function') renderUsageReport();
-    if (typeof populateYearFilter === 'function') populateYearFilter();
+    db.collection("store").doc("medicines").set({ data: medicines });
+    db.collection("store").doc("issues").set({ data: issues });
+    db.collection("store").doc("activities").set({ data: activities });
+    db.collection("store").doc("doctors").set({ data: doctors });
+    db.collection("store").doc("users").set({ data: users });
     
     updateUIByRole();
-    if (currentRole === 'Admin') renderUsers();
     
     // Theme consistency
     if (document.body.classList.contains('light-theme')) {
@@ -2043,29 +2056,38 @@ document.getElementById('login-form')?.addEventListener('submit', (e) => {
     const pass = document.getElementById('login-pass').value.trim();
     const errorEl = document.getElementById('login-error');
     
-    const user = users.find(u => u.username.toLowerCase() === usernameInput.toLowerCase() && u.password === pass);
+    const email = usernameInput.toLowerCase() + "@celogen.local";
     
-    if (user) {
-        currentRole = user.role;
-        currentUser = user.username;
-        sessionStorage.setItem('celogen_role', user.role);
-        sessionStorage.setItem('celogen_user', user.username);
+    auth.signInWithEmailAndPassword(email, pass).then((userCredential) => {
         if (errorEl) errorEl.style.display = 'none';
-        checkAuth();
-        showToast("Welcome back, " + user.username + "!");
-        logActivity("User " + user.username + " logged in", 'info');
-    } else {
-        if (errorEl) errorEl.style.display = 'block';
-    }
+        showToast("Welcome back, " + usernameInput + "!");
+        logActivity("User " + usernameInput + " logged in", 'info');
+    }).catch(err => {
+        if (err.code === 'auth/user-not-found') {
+            // Auto-create predefined users on first login attempt if they exist in our users array
+            const userRec = users.find(u => u.username.toLowerCase() === usernameInput.toLowerCase() && u.password === pass);
+            if (userRec) {
+                auth.createUserWithEmailAndPassword(email, pass).then(() => {
+                    if (errorEl) errorEl.style.display = 'none';
+                    showToast("Account initialized. Welcome, " + usernameInput + "!");
+                    logActivity("User " + usernameInput + " initialized", 'info');
+                });
+                return;
+            }
+        }
+        console.error('Login failed:', err);
+        if (errorEl) {
+            errorEl.style.display = 'block';
+            errorEl.innerText = 'Invalid username or password.';
+        }
+    });
 });
 
 window.logout = function() {
     if(confirm('Are you sure you want to sign out?')) {
-        sessionStorage.removeItem('celogen_role');
-        sessionStorage.removeItem('celogen_user');
-        currentRole = null;
-        currentUser = null;
-        location.reload(); 
+        auth.signOut().then(() => {
+            location.reload(); 
+        });
     }
 }
 
@@ -2088,7 +2110,7 @@ document.addEventListener('DOMContentLoaded', () => {
         { id: 'M014', name: 'PANTOGEN 20mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 1000, status: 'ok', minThreshold: 100 },
         { id: 'M015', name: 'PANTOGEN 40mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 1000, status: 'ok', minThreshold: 100 }
     ];
-    let currentMeds = JSON.parse(localStorage.getItem('medicines')) || [];
+    let currentMeds = medicines;
     let updated = false;
     defaultMeds.forEach(dMed => {
         if (!currentMeds.find(m => m.name === dMed.name)) {
@@ -2097,7 +2119,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     if (updated) {
-        localStorage.setItem('medicines', JSON.stringify(currentMeds));
         medicines = currentMeds;
     }
 
@@ -2113,7 +2134,7 @@ document.addEventListener('DOMContentLoaded', () => {
         { name: 'NIROSHAN PATHMANATHAN' }, { name: 'DR. WARUNA GUNATHILAKA' },
         { name: 'DR. SAMPATH WITHANAWASAM' }, { name: 'DR.RUWAN EKANAYAKE' }
     ];
-    let currentDoctors = JSON.parse(localStorage.getItem('doctors')) || [];
+    let currentDoctors = doctors;
     let docsUpdated = false;
     defaultDoctors.forEach(dDoc => {
         if (!currentDoctors.find(doc => doc.name === dDoc.name)) {
@@ -2128,7 +2149,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     if (docsUpdated) {
-        localStorage.setItem('doctors', JSON.stringify(currentDoctors));
         doctors = currentDoctors;
     }
 
