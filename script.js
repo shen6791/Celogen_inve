@@ -72,8 +72,44 @@ document.addEventListener('DOMContentLoaded', () => {
         yearInput.value = now.getFullYear();
     }
 
+    const yearFilter = document.getElementById('usage-year-filter');
+    if (yearFilter) {
+        const year = new Date().getFullYear();
+        for (let i = year; i >= year - 5; i--) {
+            const opt = document.createElement('option');
+            opt.value = i;
+            opt.textContent = i;
+            yearFilter.appendChild(opt);
+        }
+    }
+
     // Load from Cloud
     loadDataFromGas();
+
+    // Connect Modal Buttons
+    document.getElementById('btn-add-medicine')?.addEventListener('click', () => openAddMedicineModal());
+    document.getElementById('btn-add-doctor')?.addEventListener('click', () => openAddDoctorModal());
+    document.getElementById('btn-add-user')?.addEventListener('click', () => openAddUserModal());
+    
+    document.getElementById('btn-add-issue-item')?.addEventListener('click', () => {
+        const container = document.getElementById('issue-items-container');
+        const row = document.querySelector('.issue-item-row').cloneNode(true);
+        row.querySelector('.issue-medicine').value = "";
+        row.querySelector('.issue-quantity').value = "";
+        row.querySelector('.remove-item-row').style.visibility = 'visible';
+        row.querySelector('.remove-item-row').addEventListener('click', () => row.remove());
+        container.appendChild(row);
+        renderMedicineOptions();
+    });
+
+    document.querySelectorAll('.close-modal').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
+        });
+    });
+
+    // Theme Toggle
+    document.getElementById('theme-toggle')?.addEventListener('click', () => toggleTheme());
 });
 
 async function loadDataFromGas() {
@@ -264,6 +300,7 @@ function renderInventory() {
                 <div style="display:flex; gap:5px;">
                     <button class="btn-icon admin-only" onclick="openEditMedicineModal('${med.id}')">Edit</button>
                     <button class="btn-icon" onclick="adjustStock('${med.id}')">Add</button>
+                    <button class="btn-icon admin-only" onclick="openDiscardModal('${med.id}')">Discard</button>
                     <button class="btn-icon admin-only" onclick="deleteMedicine('${med.id}')">Del</button>
                 </div>
             </td>
@@ -426,6 +463,159 @@ window.deleteUserAccount = (index) => {
     }
 };
 
+window.applyDateFilter = () => {
+    const start = document.getElementById('filter-start-date').value;
+    const end = document.getElementById('filter-end-date').value;
+    if (!start || !end) return showToast("Please select both dates", "info");
+    
+    const filtered = issues.filter(i => {
+        const date = i.date.split('T')[0];
+        return date >= start && date <= end;
+    });
+    renderIssues(filtered);
+};
+
+window.clearDateFilter = () => {
+    document.getElementById('filter-start-date').value = '';
+    document.getElementById('filter-end-date').value = '';
+    renderIssues();
+};
+
+window.printReceipt = (id) => {
+    const issue = issues.find(i => i.id == id);
+    if (!issue) return;
+
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+        <html>
+        <head>
+            <title>Gate Pass - ${issue.transactionId}</title>
+            <style>
+                body { font-family: sans-serif; padding: 40px; }
+                .header { text-align: center; border-bottom: 2px solid #159a45; padding-bottom: 20px; }
+                .details { margin: 30px 0; line-height: 1.6; }
+                .footer { margin-top: 50px; display: flex; justify-content: space-between; }
+                .sig { border-top: 1px solid #000; width: 150px; text-align: center; padding-top: 5px; }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h1>CELOGEN PHARMA</h1>
+                <h3>SAMPLE GATE PASS</h3>
+            </div>
+            <div class="details">
+                <p><strong>Transaction ID:</strong> ${issue.transactionId || issue.id}</p>
+                <p><strong>Date:</strong> ${new Date(issue.date).toLocaleString()}</p>
+                <p><strong>Recipient:</strong> ${issue.doctor}</p>
+                <hr>
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background: #f4f4f4;">
+                            <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">Product</th>
+                            <th style="padding: 10px; text-align: center; border: 1px solid #ddd;">Batch</th>
+                            <th style="padding: 10px; text-align: center; border: 1px solid #ddd;">Qty</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td style="padding: 10px; border: 1px solid #ddd;">${issue.medicineName}</td>
+                            <td style="padding: 10px; text-align: center; border: 1px solid #ddd;">${issue.batch}</td>
+                            <td style="padding: 10px; text-align: center; border: 1px solid #ddd;">${issue.quantity}</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p style="margin-top: 20px;"><strong>Notes:</strong> ${issue.notes || 'N/A'}</p>
+            </div>
+            <div class="footer">
+                <div class="sig">Issuer Signature</div>
+                <div class="sig">Receiver Signature</div>
+            </div>
+        </body>
+        </html>
+    `);
+    printWindow.document.close();
+    printWindow.print();
+};
+
+window.printInventoryAudit = () => {
+    const printWindow = window.open('', '_blank');
+    let rows = '';
+    medicines.forEach(m => {
+        rows += `
+            <tr>
+                <td style="padding: 8px; border: 1px solid #ddd;">${m.id}</td>
+                <td style="padding: 8px; border: 1px solid #ddd;">${m.name}</td>
+                <td style="padding: 8px; border: 1px solid #ddd;">${m.batch}</td>
+                <td style="padding: 8px; border: 1px solid #ddd;">${m.expiry}</td>
+                <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${m.quantity}</td>
+                <td style="padding: 8px; border: 1px solid #ddd; width: 100px;"></td>
+            </tr>
+        `;
+    });
+
+    printWindow.document.write(`
+        <html>
+        <head><title>Inventory Audit Sheet</title></head>
+        <body style="font-family: sans-serif; padding: 20px;">
+            <h1 style="color: #159a45;">Inventory Audit Sheet</h1>
+            <p>Generated on: ${new Date().toLocaleString()}</p>
+            <table border="1" style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="background: #eee;">
+                        <th>ID</th><th>Product Name</th><th>Batch</th><th>Expiry</th><th>System Qty</th><th>Actual Qty</th>
+                    </tr>
+                </thead>
+                <tbody>${rows}</tbody>
+            </table>
+        </body>
+        </html>
+    `);
+    printWindow.document.close();
+    printWindow.print();
+};
+
+// --- STOCK ADJUSTMENT ---
+window.adjustStock = (id) => {
+    const med = medicines.find(m => m.id === id);
+    if (!med) return;
+    const qty = prompt(`Add stock for ${med.name}. Current: ${med.quantity}\nEnter amount to ADD:`);
+    if (qty === null || qty === "") return;
+    const val = parseInt(qty);
+    if (isNaN(val) || val <= 0) return alert("Please enter a valid positive number");
+    
+    med.quantity += val;
+    logActivity(`Restocked: +${val} ${med.name}`, 'success');
+    saveData();
+    showToast(`Added ${val} units to ${med.name}`);
+};
+
+window.openDiscardModal = (id) => {
+    const med = medicines.find(m => m.id === id);
+    if (!med) return;
+    document.getElementById('discard-med-id').value = med.id;
+    document.getElementById('discard-med-name').value = med.name;
+    document.getElementById('discard-qty').max = med.quantity;
+    document.getElementById('discard-qty').value = "";
+    document.getElementById('discard-stock-modal').classList.add('active');
+};
+
+document.getElementById('discard-stock-form')?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const id = document.getElementById('discard-med-id').value;
+    const qty = parseInt(document.getElementById('discard-qty').value);
+    const reason = document.getElementById('discard-reason').value;
+    const med = medicines.find(m => m.id === id);
+
+    if (med && qty > 0) {
+        if (qty > med.quantity) return alert("Cannot discard more than current stock!");
+        med.quantity -= qty;
+        logActivity(`Discarded: -${qty} ${med.name} (${reason})`, 'warning');
+        saveData();
+        document.getElementById('discard-stock-modal').classList.remove('active');
+        showToast(`Discarded ${qty} units`);
+    }
+});
+
 // --- FORM SUBMISSIONS ---
 document.getElementById('add-doctor-form')?.addEventListener('submit', (e) => {
     e.preventDefault();
@@ -481,6 +671,274 @@ document.getElementById('issue-form')?.addEventListener('submit', (e) => {
     showToast("Samples issued successfully!");
 });
 
+// --- MEDICINE MODAL & FORM ---
+window.openAddMedicineModal = () => {
+    document.getElementById('med-modal-title').innerText = "Add New Product";
+    document.getElementById('med-edit-id').value = "";
+    document.getElementById('add-medicine-form').reset();
+    document.getElementById('add-medicine-modal').classList.add('active');
+};
+
+window.openEditMedicineModal = (id) => {
+    const med = medicines.find(m => m.id === id);
+    if (!med) return;
+    document.getElementById('med-modal-title').innerText = "Edit Product";
+    document.getElementById('med-edit-id').value = med.id;
+    document.getElementById('med-name').value = med.name;
+    document.getElementById('med-batch').value = med.batch;
+    document.getElementById('med-expiry').value = med.expiry;
+    document.getElementById('med-qty').value = med.quantity;
+    document.getElementById('med-threshold').value = med.minThreshold || 50;
+    document.getElementById('add-medicine-modal').classList.add('active');
+};
+
+document.getElementById('add-medicine-form')?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const id = document.getElementById('med-edit-id').value;
+    const name = document.getElementById('med-name').value.trim();
+    const batch = document.getElementById('med-batch').value.trim();
+    const expiry = document.getElementById('med-expiry').value;
+    const quantity = parseInt(document.getElementById('med-qty').value);
+    const minThreshold = parseInt(document.getElementById('med-threshold').value);
+
+    if (id) {
+        // Edit Mode
+        const index = medicines.findIndex(m => m.id === id);
+        if (index !== -1) {
+            medicines[index] = { ...medicines[index], name, batch, expiry, quantity, minThreshold };
+            logActivity(`Updated product: ${name}`, 'info');
+        }
+    } else {
+        // Add Mode
+        const newId = 'M' + String(Date.now()).slice(-4);
+        medicines.push({ id: newId, name, batch, expiry, quantity, minThreshold, status: 'ok' });
+        logActivity(`Added new product: ${name}`, 'success');
+    }
+
+    saveData();
+    document.getElementById('add-medicine-modal').classList.remove('active');
+    showToast("Product saved successfully!");
+});
+
+// --- DOCTOR MODAL & FORM ---
+window.openAddDoctorModal = () => {
+    document.getElementById('doc-modal-title').innerText = "Add New Recipient";
+    document.getElementById('doc-edit-id').value = "";
+    document.getElementById('add-doctor-form').reset();
+    document.getElementById('add-doctor-modal').classList.add('active');
+};
+
+document.getElementById('add-doctor-form')?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const name = document.getElementById('doc-name').value.trim();
+    const specialty = document.getElementById('doc-category').value; // Corrected ID from index.html
+    const team = document.getElementById('doc-region').value.trim(); // Corrected ID from index.html
+    
+    const newId = 'D' + String(Date.now()).slice(-4);
+    doctors.push({ id: newId, name, specialty, team });
+    
+    logActivity(`Added recipient: ${name}`, 'success');
+    saveData();
+    
+    document.getElementById('add-doctor-modal').classList.remove('active');
+    showToast("Recipient added!");
+});
+
+// --- REPORTS MODULE ---
+window.toggleReportMode = (mode) => {
+    document.querySelectorAll('.report-toggle').forEach(btn => btn.classList.remove('active'));
+    document.querySelector(`.report-toggle[onclick*="${mode}"]`).classList.add('active');
+    
+    document.getElementById('monthly-report-controls').style.display = mode === 'monthly' ? 'block' : 'none';
+    document.getElementById('yearly-report-controls').style.display = mode === 'yearly' ? 'block' : 'none';
+};
+
+window.renderUsageReport = () => {
+    const monthFilter = document.getElementById('usage-month-filter').value;
+    if (!monthFilter) return showToast("Please select a month", "info");
+
+    const tbody = document.querySelector('#usage-report-table tbody');
+    tbody.innerHTML = '';
+
+    // Group by Doctor
+    const reportData = doctors.map(doc => {
+        const docIssues = issues.filter(i => {
+            const date = i.date.substring(0, 7); // YYYY-MM
+            return date === monthFilter && i.doctor === doc.name && i.status !== 'cancelled';
+        });
+
+        if (docIssues.length === 0) return null;
+
+        const products = [...new Set(docIssues.map(i => i.medicineName))].join(', ');
+        const totalQty = docIssues.reduce((sum, i) => sum + i.quantity, 0);
+        const lastDate = docIssues[0].date;
+
+        return { name: doc.name, category: doc.specialty, products, totalQty, lastDate };
+    }).filter(d => d !== null);
+
+    if (reportData.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">No data for this month.</td></tr>';
+        return;
+    }
+
+    reportData.forEach(row => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><strong>${row.name}</strong></td>
+            <td>${row.category}</td>
+            <td><small>${row.products}</small></td>
+            <td>${row.totalQty}</td>
+            <td>${new Date(row.lastDate).toLocaleDateString()}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+};
+
+window.renderYearlyReport = () => {
+    const yearFilter = document.getElementById('usage-year-filter').value;
+    const tbody = document.querySelector('#usage-report-table tbody');
+    tbody.innerHTML = '';
+
+    const reportData = doctors.map(doc => {
+        const docIssues = issues.filter(i => {
+            const date = i.date.substring(0, 4); // YYYY
+            return date === yearFilter && i.doctor === doc.name && i.status !== 'cancelled';
+        });
+
+        if (docIssues.length === 0) return null;
+
+        const products = [...new Set(docIssues.map(i => i.medicineName))].join(', ');
+        const totalQty = docIssues.reduce((sum, i) => sum + i.quantity, 0);
+        const lastDate = docIssues[0].date;
+
+        return { name: doc.name, category: doc.specialty, products, totalQty, lastDate };
+    }).filter(d => d !== null);
+
+    if (reportData.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">No data for this year.</td></tr>';
+        return;
+    }
+
+    reportData.forEach(row => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><strong>${row.name}</strong></td>
+            <td>${row.category}</td>
+            <td><small>${row.products}</small></td>
+            <td>${row.totalQty}</td>
+            <td>${new Date(row.lastDate).toLocaleDateString()}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+};
+
+// --- USER MODAL & FORM ---
+window.openAddUserModal = () => {
+    document.getElementById('add-user-form').reset();
+    document.getElementById('add-user-modal').classList.add('active');
+};
+
+// --- DATA MANAGEMENT ---
+window.backupData = () => {
+    const data = { medicines, issues, doctors, activities, users, backupDate: new Date().toISOString() };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Celogen_Backup_${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+    showToast("Backup downloaded!");
+};
+
+document.getElementById('file-restore-data')?.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+        try {
+            const data = JSON.parse(event.target.result);
+            if (confirm("Restore this backup? Current data will be overwritten.")) {
+                if (data.medicines) medicines = data.medicines;
+                if (data.issues) issues = data.issues;
+                if (data.doctors) doctors = data.doctors;
+                if (data.activities) activities = data.activities;
+                if (data.users) users = data.users;
+                saveData();
+                showToast("Data Restored!");
+                location.reload();
+            }
+        } catch (err) {
+            alert("Invalid backup file!");
+        }
+    };
+    reader.readAsText(file);
+});
+
+window.clearActivityLogs = () => {
+    if (confirm("Clear all activity logs?")) {
+        activities = [];
+        saveData();
+        showToast("Logs cleared!");
+    }
+};
+
+window.resetData = () => {
+    if (confirm("FACTORY RESET: Wipe ALL data including users?")) {
+        const defaultUsers = [{ username: 'Admin', role: 'Admin', password: 'admin123' }];
+        medicines = [];
+        issues = [];
+        doctors = [];
+        activities = [];
+        users = defaultUsers;
+        saveData();
+        sessionStorage.clear();
+        location.reload();
+    }
+};
+
+// --- EXPORT UTILS ---
+window.exportHistoryToExcel = () => {
+    const ws = XLSX.utils.json_to_sheet(issues.map(i => ({
+        Date: new Date(i.date).toLocaleString(),
+        Recipient: i.doctor,
+        Product: i.medicineName,
+        Batch: i.batch,
+        Quantity: i.quantity,
+        Status: i.status,
+        Notes: i.notes || ''
+    })));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "History");
+    XLSX.writeFile(wb, "Celogen_Issue_History.xlsx");
+};
+
+window.exportUsageReport = (type) => {
+    const table = document.getElementById('usage-report-table');
+    if (!table) return;
+    const wb = XLSX.utils.table_to_book(table);
+    const filename = type === 'monthly' ? "Celogen_Monthly_Usage.xlsx" : "Celogen_Yearly_Usage.xlsx";
+    XLSX.writeFile(wb, filename);
+    showToast("Report Exported!");
+};
+
+document.getElementById('add-user-form')?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const username = document.getElementById('user-name').value.trim();
+    const role = document.getElementById('user-role').value;
+    const password = document.getElementById('user-pass').value.trim();
+
+    if (users.some(u => u.username.toLowerCase() === username.toLowerCase())) {
+        return alert("Username already exists!");
+    }
+
+    users.push({ username, role, password });
+    logActivity(`Created user account: ${username}`, 'info');
+    saveData();
+    
+    document.getElementById('add-user-modal').classList.remove('active');
+    showToast("User account created!");
+});
+
 // --- NAVIGATION ---
 document.querySelectorAll('.nav-item').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -519,8 +977,137 @@ window.cleanStart = () => {
 };
 
 function renderSampleRequestGrid() {
-    // Basic implementation for warehouse view
-    const grid = document.getElementById('sample-request-grid');
-    if (!grid) return;
-    grid.innerHTML = '<h3>Request Samples Grid Coming Soon</h3>';
+    const head = document.getElementById('bulk-head');
+    const body = document.getElementById('bulk-body');
+    if (!head || !body) return;
+
+    const monthSelect = document.getElementById('sample-month-select');
+    const yearInput = document.getElementById('sample-year-input');
+    const monthName = monthSelect.options[monthSelect.selectedIndex].text;
+    const yearValue = yearInput.value;
+
+    // Header: Product Name | Recipient 1 | Recipient 2 | ... | Total
+    let headHtml = '<tr><th style="position:sticky; left:0; background:var(--bg-panel); z-index:10; min-width:200px;">Product Name</th>';
+    doctors.forEach(doc => {
+        headHtml += `<th style="writing-mode: vertical-lr; transform: rotate(180deg); padding: 15px 5px; min-width: 45px; font-size: 0.7rem; font-weight:500;">${doc.name}</th>`;
+    });
+    headHtml += '<th style="background:var(--bg-panel); font-weight:700; color:var(--primary);">TOTAL</th></tr>';
+    head.innerHTML = headHtml;
+
+    // Body: One row per medicine
+    let bodyHtml = '';
+    medicines.forEach(med => {
+        bodyHtml += `<tr><td style="position:sticky; left:0; background:var(--bg-panel); z-index:9; border-right:2px solid var(--border-color);"><strong>${med.name}</strong></td>`;
+        doctors.forEach(doc => {
+            bodyHtml += `<td><input type="number" class="sample-input" data-med="${med.id}" data-doc="${doc.id}" min="0" value="0" oninput="calculateSampleTotals()" style="width: 45px; padding: 4px 2px; font-size: 0.8rem; background: transparent; border: 1px solid var(--border-color); color: var(--text-primary); text-align: center; border-radius: 4px;"></td>`;
+        });
+        bodyHtml += `<td class="med-row-total" id="total-${med.id}" style="font-weight:700; color:var(--primary); text-align:center; background:rgba(21, 154, 69, 0.05);">0</td></tr>`;
+    });
+    body.innerHTML = bodyHtml;
 }
+
+window.calculateSampleTotals = () => {
+    medicines.forEach(med => {
+        let rowTotal = 0;
+        document.querySelectorAll(`.sample-input[data-med="${med.id}"]`).forEach(input => {
+            rowTotal += parseInt(input.value) || 0;
+        });
+        const totalEl = document.getElementById(`total-${med.id}`);
+        if (totalEl) totalEl.innerText = rowTotal;
+    });
+};
+
+window.exportSampleRequestExcel = () => {
+    const table = document.getElementById('bulk-allocation-table');
+    if (!table) return;
+    
+    const month = document.getElementById('sample-month-select').options[document.getElementById('sample-month-select').selectedIndex].text;
+    const year = document.getElementById('sample-year-input').value;
+    
+    // Create a new workbook and worksheet
+    const wb = XLSX.utils.book_new();
+    const ws_data = [];
+    
+    // Header Row
+    const headerRow = ['Product Name'];
+    doctors.forEach(d => headerRow.push(d.name));
+    headerRow.push('TOTAL');
+    ws_data.push(headerRow);
+    
+    // Data Rows
+    medicines.forEach(med => {
+        const row = [med.name];
+        let total = 0;
+        doctors.forEach(doc => {
+            const val = parseInt(document.querySelector(`.sample-input[data-med="${med.id}"][data-doc="${doc.id}"]`)?.value) || 0;
+            row.push(val);
+            total += val;
+        });
+        row.push(total);
+        ws_data.push(row);
+    });
+    
+    const ws = XLSX.utils.aoa_to_sheet(ws_data);
+    XLSX.utils.book_append_sheet(wb, ws, "Sample Request");
+    XLSX.writeFile(wb, `Celogen_Sample_Request_${month}_${year}.xlsx`);
+    showToast("Excel Exported!");
+};
+
+window.printSampleRequest = () => {
+    const month = document.getElementById('sample-month-select').options[document.getElementById('sample-month-select').selectedIndex].text;
+    const year = document.getElementById('sample-year-input').value;
+    
+    let printContent = `
+        <div style="font-family: Inter, sans-serif; padding: 20px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 2px solid #159a45; padding-bottom: 10px; margin-bottom: 20px;">
+                <div>
+                    <h1 style="color: #159a45; margin: 0;">CELOGEN PHARMA</h1>
+                    <p style="margin: 5px 0; color: #666;">Warehouse Sample Request - ${month} ${year}</p>
+                </div>
+                <div style="text-align: right;">
+                    <p style="margin:0;">Date: ${new Date().toLocaleDateString()}</p>
+                </div>
+            </div>
+            <table border="1" style="width:100%; border-collapse: collapse; font-size: 10px;">
+                <thead>
+                    <tr>
+                        <th style="padding: 5px; text-align: left;">Product Name</th>
+    `;
+    
+    doctors.forEach(d => {
+        printContent += `<th style="writing-mode: vertical-lr; transform: rotate(180deg); padding: 5px;">${d.name}</th>`;
+    });
+    
+    printContent += `
+                        <th style="padding: 5px;">TOTAL</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+    
+    medicines.forEach(med => {
+        printContent += `<tr><td style="padding: 5px;"><strong>${med.name}</strong></td>`;
+        let total = 0;
+        doctors.forEach(doc => {
+            const val = parseInt(document.querySelector(`.sample-input[data-med="${med.id}"][data-doc="${doc.id}"]`)?.value) || 0;
+            printContent += `<td style="text-align: center;">${val || '-'}</td>`;
+            total += val;
+        });
+        printContent += `<td style="text-align: center; font-weight: bold;">${total}</td></tr>`;
+    });
+    
+    printContent += `
+                </tbody>
+            </table>
+            <div style="margin-top: 40px; display: flex; justify-content: space-between;">
+                <div style="border-top: 1px solid #000; width: 200px; text-align: center; padding-top: 5px;">Requested By</div>
+                <div style="border-top: 1px solid #000; width: 200px; text-align: center; padding-top: 5px;">Approved By</div>
+            </div>
+        </div>
+    `;
+
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`<html><head><title>Sample Request - ${month} ${year}</title></head><body>${printContent}</body></html>`);
+    printWindow.document.close();
+    printWindow.print();
+};
