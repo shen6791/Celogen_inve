@@ -1,18 +1,4 @@
-// Firebase Configuration
-const firebaseConfig = {
-  apiKey: "AIzaSyAZ3RfyNTFvoHEWnmg98nLsgbnKTNJ5bRE",
-  authDomain: "celogen-inventory.firebaseapp.com",
-  projectId: "celogen-inventory",
-  storageBucket: "celogen-inventory.firebasestorage.app",
-  messagingSenderId: "367144552276",
-  appId: "1:367144552276:web:46b1ade9da7cafb9e9aac1",
-  measurementId: "G-NTX3R0WC0K"
-};
-
-// Initialize Firebase
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
-const auth = firebase.auth();
+const GAS_URL = "https://script.google.com/macros/s/AKfycbxt1_NeYXWt6QPna7a6_GEFCJRcWpU4Yk-Cef0uWEbfKSaILd0iQDc8c_Is6_pO7T8icQ/exec";
 
 // Data Store
 let medicines = [];
@@ -21,99 +7,74 @@ let doctors = [];
 let activities = [];
 let users = [];
 
-let currentRole = null;
-let currentUser = null;
+let currentRole = sessionStorage.getItem('celogen_role') || null;
+let currentUser = sessionStorage.getItem('celogen_user') || null;
 
-// Initialize Firebase Listeners
-db.collection("store").doc("medicines").onSnapshot(doc => {
-    if (doc.exists) {
-        medicines = doc.data().data || [];
+async function loadDataFromGas() {
+    try {
+        const response = await fetch(GAS_URL);
+        const dataStr = await response.text();
+        let data = {};
+        try { data = JSON.parse(dataStr); } catch(e) {}
+        
+        medicines = data.medicines || [];
+        issues = data.issues || [];
+        doctors = data.doctors || [];
+        activities = data.activities || [];
+        users = data.users || [];
+        
+        if (users.length === 0) {
+            users = [
+                { username: 'Admin', role: 'Admin', password: 'admin123' },
+                { username: 'Assistant', role: 'Assistant', password: 'staff123' }
+            ];
+        }
+        
         renderInventory();
         updateDashboard();
         renderMedicineOptions();
-        if (typeof renderHealthChart === 'function') renderHealthChart();
-        if (typeof renderAlerts === 'function') renderAlerts();
-    }
-});
-
-db.collection("store").doc("issues").onSnapshot(doc => {
-    if (doc.exists) {
-        issues = doc.data().data || [];
         renderIssues();
-        updateDashboard();
-        if (typeof renderUsageReport === 'function') renderUsageReport();
-        if (typeof populateYearFilter === 'function') populateYearFilter();
-    }
-});
-
-db.collection("store").doc("doctors").onSnapshot(doc => {
-    if (doc.exists) {
-        doctors = doc.data().data || [];
+        renderActivityFeed();
         if (typeof renderDoctors === 'function') renderDoctors();
         if (typeof renderDoctorOptions === 'function') renderDoctorOptions();
+        if (typeof renderHealthChart === 'function') renderHealthChart();
+        if (typeof renderAlerts === 'function') renderAlerts();
+        if (typeof renderUsageReport === 'function') renderUsageReport();
+        if (typeof populateYearFilter === 'function') populateYearFilter();
+        if (currentRole === 'Admin') renderUsers();
+        
+    } catch (error) {
+        console.error("Error loading data from Google Sheets:", error);
+        showToast("Error loading data from database.", "error");
     }
-});
+}
 
-db.collection("store").doc("activities").onSnapshot(doc => {
-    if (doc.exists) {
-        activities = doc.data().data || [];
-        renderActivityFeed();
-    }
-});
-
-db.collection("store").doc("users").onSnapshot(doc => {
-    let loadedUsers = [];
-    if (doc.exists) {
-        loadedUsers = doc.data().data || [];
-    }
-    
-    if (loadedUsers.length === 0) {
-        loadedUsers = [
-            { username: 'Admin', role: 'Admin', password: 'admin123' },
-            { username: 'Assistant', role: 'Assistant', password: 'staff123' }
-        ];
-    }
-    
-    users = loadedUsers;
-    if (currentRole === 'Admin') renderUsers();
-});
-
-auth.onAuthStateChanged(user => {
-    if (user) {
-        // Find role from users array if loaded, else wait
-        const checkRoleInterval = setInterval(() => {
-            if (users.length > 0) {
-                clearInterval(checkRoleInterval);
-                const matchedUser = users.find(u => (u.username.toLowerCase() + '@celogen.local') === user.email);
-                if (matchedUser) {
-                    currentRole = matchedUser.role;
-                    currentUser = matchedUser.username;
-                    checkAuth();
-                }
-            } else if (user.email === 'admin@celogen.local') {
-                clearInterval(checkRoleInterval);
-                currentRole = 'Admin';
-                currentUser = 'Admin';
-                checkAuth();
-            }
-        }, 500);
-    } else {
-        currentRole = null;
-        currentUser = null;
-        checkAuth();
-    }
-});
-
-// Utility: Save to Firestore
+// Utility: Save to Google Sheets
 function saveData() {
-    db.collection("store").doc("medicines").set({ data: medicines });
-    db.collection("store").doc("issues").set({ data: issues });
-    db.collection("store").doc("activities").set({ data: activities });
-    db.collection("store").doc("doctors").set({ data: doctors });
-    db.collection("store").doc("users").set({ data: users });
+    const payload = {
+        medicines,
+        issues,
+        doctors,
+        activities,
+        users
+    };
     
+    // We update local UI immediately
+    updateDashboard();
+    renderInventory();
+    renderIssues();
+    renderMedicineOptions();
+    renderActivityFeed();
+    if (typeof renderChart === 'function') renderChart();
+    if (typeof renderDoctors === 'function') renderDoctors();
+    if (typeof renderDoctorOptions === 'function') renderDoctorOptions();
+    if (typeof renderAlerts === 'function') renderAlerts();
+    if (typeof renderHealthChart === 'function') renderHealthChart();
+    if (typeof renderUsageReport === 'function') renderUsageReport();
+    if (typeof populateYearFilter === 'function') populateYearFilter();
     updateUIByRole();
-    
+    if (currentRole === 'Admin') renderUsers();
+
     // Theme consistency
     if (document.body.classList.contains('light-theme')) {
         document.getElementById('theme-icon-light')?.classList.add('hidden-role');
@@ -122,6 +83,14 @@ function saveData() {
         document.getElementById('theme-icon-light')?.classList.remove('hidden-role');
         document.getElementById('theme-icon-dark')?.classList.add('hidden-role');
     }
+
+    // Fire and forget POST to GAS
+    fetch(GAS_URL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+    }).catch(err => console.error("Error saving to GAS", err));
 }
 
 function updateUIByRole() {
@@ -2066,116 +2035,37 @@ document.getElementById('login-form')?.addEventListener('submit', (e) => {
     const pass = document.getElementById('login-pass').value.trim();
     const errorEl = document.getElementById('login-error');
     
-    const email = usernameInput.toLowerCase() + "@celogen.local";
+    const user = users.find(u => u.username.toLowerCase() === usernameInput.toLowerCase() && u.password === pass);
     
-    auth.signInWithEmailAndPassword(email, pass).then((userCredential) => {
+    if (user) {
+        currentRole = user.role;
+        currentUser = user.username;
+        sessionStorage.setItem('celogen_role', user.role);
+        sessionStorage.setItem('celogen_user', user.username);
         if (errorEl) errorEl.style.display = 'none';
-        showToast("Welcome back, " + usernameInput + "!");
-        logActivity("User " + usernameInput + " logged in", 'info');
-    }).catch(err => {
-        // Modern Firebase uses generic invalid-credential for missing users too
-        const userRec = users.find(u => u.username.toLowerCase() === usernameInput.toLowerCase() && u.password === pass);
-        
-        if (userRec && (err.code === 'auth/user-not-found' || err.code.includes('invalid-credential'))) {
-            auth.createUserWithEmailAndPassword(email, pass).then(() => {
-                if (errorEl) errorEl.style.display = 'none';
-                showToast("Account initialized. Welcome, " + usernameInput + "!");
-                logActivity("User " + usernameInput + " initialized", 'info');
-            }).catch(createErr => {
-                if (createErr.code === 'auth/email-already-in-use') {
-                    // This means the account exists, but they typed the wrong password
-                    if (errorEl) {
-                        errorEl.style.display = 'block';
-                        errorEl.innerText = 'Invalid username or password.';
-                    }
-                } else {
-                    console.error('Account creation failed:', createErr);
-                    if (errorEl) {
-                        errorEl.style.display = 'block';
-                        errorEl.innerText = createErr.message;
-                    }
-                }
-            });
-            return;
-        }
-
-        console.error('Login failed:', err);
+        checkAuth();
+        showToast("Welcome back, " + user.username + "!");
+        logActivity("User " + user.username + " logged in", 'info');
+        saveData(); // Save activity
+    } else {
         if (errorEl) {
             errorEl.style.display = 'block';
             errorEl.innerText = 'Invalid username or password.';
         }
-    });
+    }
 });
 
 window.logout = function() {
     if(confirm('Are you sure you want to sign out?')) {
-        auth.signOut().then(() => {
-            location.reload(); 
-        });
+        sessionStorage.removeItem('celogen_role');
+        sessionStorage.removeItem('celogen_user');
+        currentRole = null;
+        currentUser = null;
+        location.reload(); 
     }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Sync missing products
-    const defaultMeds = [
-        { id: 'M001', name: 'ATOGEN 10mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 1000, status: 'ok', minThreshold: 100 },
-        { id: 'M002', name: 'ATOGEN 20 mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 1000, status: 'ok', minThreshold: 100 },
-        { id: 'M003', name: 'ATOGEN 40 mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 1000, status: 'ok', minThreshold: 100 },
-        { id: 'M004', name: 'CLOPIL 75mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 1000, status: 'ok', minThreshold: 100 },
-        { id: 'M005', name: 'LK 50mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 1000, status: 'ok', minThreshold: 100 },
-        { id: 'M006', name: 'LK 25mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 1000, status: 'ok', minThreshold: 100 },
-        { id: 'M007', name: 'SITABEST 50mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 1000, status: 'ok', minThreshold: 100 },
-        { id: 'M008', name: 'SITABEST 100mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 1000, status: 'ok', minThreshold: 100 },
-        { id: 'M009', name: 'CELOMET 850mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 1000, status: 'ok', minThreshold: 100 },
-        { id: 'M010', name: 'CELOMET SR 500mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 1000, status: 'ok', minThreshold: 100 },
-        { id: 'M011', name: 'EMPABEST 10mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 1000, status: 'ok', minThreshold: 100 },
-        { id: 'M012', name: 'EMPABEST 25mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 1000, status: 'ok', minThreshold: 100 },
-        { id: 'M013', name: 'EWON 400mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 1000, status: 'ok', minThreshold: 100 },
-        { id: 'M014', name: 'PANTOGEN 20mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 1000, status: 'ok', minThreshold: 100 },
-        { id: 'M015', name: 'PANTOGEN 40mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 1000, status: 'ok', minThreshold: 100 }
-    ];
-    let currentMeds = medicines;
-    let updated = false;
-    defaultMeds.forEach(dMed => {
-        if (!currentMeds.find(m => m.name === dMed.name)) {
-            currentMeds.push(dMed);
-            updated = true;
-        }
-    });
-    if (updated) {
-        medicines = currentMeds;
-    }
-
-    // Sync missing doctors/staff
-    const defaultDoctors = [
-        { name: 'M.G.L.W.K.DHARMAPALA' }, { name: 'G.RICHERD PAUL' }, { name: 'S.D.P.NARAMPANAWA' },
-        { name: 'MANIMOHAN' }, { name: 'ASIRI NUWAN' }, { name: 'GIHAN DHANUSHKA' },
-        { name: 'ROSHEN THARAKA SAMARAWICKRAMA' }, { name: 'N.A.THARINDU DINUSHAN WIJESIRI' },
-        { name: 'KASUN WIMALASIRI' }, { name: 'KANISHKA GIHAN' }, { name: 'SINDUJAN' },
-        { name: 'PEYUMAL NIROSHAN' }, { name: 'P.M.WELAGEDARA' }, { name: 'ISHAN MUNASINGHE' },
-        { name: 'IMASH KODAGODA' }, { name: 'ASIRI CHAMARA' }, { name: 'SHERAN CHRISTOPHER' },
-        { name: 'K.S. PRAGATHAN' }, { name: 'PALITHA RUWAN' }, { name: 'ARJUNA SUDARSHANA' },
-        { name: 'NIROSHAN PATHMANATHAN' }, { name: 'DR. WARUNA GUNATHILAKA' },
-        { name: 'DR. SAMPATH WITHANAWASAM' }, { name: 'DR.RUWAN EKANAYAKE' }
-    ];
-    let currentDoctors = doctors;
-    let docsUpdated = false;
-    defaultDoctors.forEach(dDoc => {
-        if (!currentDoctors.find(doc => doc.name === dDoc.name)) {
-            const isDoctor = dDoc.name.toUpperCase().startsWith('DR.');
-            currentDoctors.push({ 
-                id: 'D' + Math.floor(Math.random()*10000), 
-                name: dDoc.name, 
-                team: '',
-                specialty: isDoctor ? 'Doctor' : 'Medical Representative'
-            });
-            docsUpdated = true;
-        }
-    });
-    if (docsUpdated) {
-        doctors = currentDoctors;
-    }
-
     // Initialize Sample Request Month/Year
     const monthSelect = document.getElementById('sample-month-select');
     const yearInput = document.getElementById('sample-year-input');
@@ -2188,15 +2078,71 @@ document.addEventListener('DOMContentLoaded', () => {
         initTheme();
         checkAuth();
         
-        // Initialize Firebase with default data ONLY if it's completely empty
-        db.collection("store").doc("medicines").get().then(doc => {
-            if (!doc.exists) {
-                console.log("Initializing new database with default data...");
+        // Load data from Google Apps Script Backend
+        loadDataFromGas().then(() => {
+            console.log("Data loaded from Google Sheets!");
+            let updated = false;
+            
+            // Sync missing products
+            const defaultMeds = [
+                { id: 'M001', name: 'ATOGEN 10mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 1000, status: 'ok', minThreshold: 100 },
+                { id: 'M002', name: 'ATOGEN 20 mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 1000, status: 'ok', minThreshold: 100 },
+                { id: 'M003', name: 'ATOGEN 40 mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 1000, status: 'ok', minThreshold: 100 },
+                { id: 'M004', name: 'CLOPIL 75mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 1000, status: 'ok', minThreshold: 100 },
+                { id: 'M005', name: 'LK 50mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 1000, status: 'ok', minThreshold: 100 },
+                { id: 'M006', name: 'LK 25mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 1000, status: 'ok', minThreshold: 100 },
+                { id: 'M007', name: 'SITABEST 50mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 1000, status: 'ok', minThreshold: 100 },
+                { id: 'M008', name: 'SITABEST 100mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 1000, status: 'ok', minThreshold: 100 },
+                { id: 'M009', name: 'CELOMET 850mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 1000, status: 'ok', minThreshold: 100 },
+                { id: 'M010', name: 'CELOMET SR 500mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 1000, status: 'ok', minThreshold: 100 },
+                { id: 'M011', name: 'EMPABEST 10mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 1000, status: 'ok', minThreshold: 100 },
+                { id: 'M012', name: 'EMPABEST 25mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 1000, status: 'ok', minThreshold: 100 },
+                { id: 'M013', name: 'EWON 400mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 1000, status: 'ok', minThreshold: 100 },
+                { id: 'M014', name: 'PANTOGEN 20mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 1000, status: 'ok', minThreshold: 100 },
+                { id: 'M015', name: 'PANTOGEN 40mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 1000, status: 'ok', minThreshold: 100 }
+            ];
+            defaultMeds.forEach(dMed => {
+                if (!medicines.find(m => m.name === dMed.name)) {
+                    medicines.push(dMed);
+                    updated = true;
+                }
+            });
+
+            // Sync missing doctors/staff
+            const defaultDoctors = [
+                { name: 'M.G.L.W.K.DHARMAPALA' }, { name: 'G.RICHERD PAUL' }, { name: 'S.D.P.NARAMPANAWA' },
+                { name: 'MANIMOHAN' }, { name: 'ASIRI NUWAN' }, { name: 'GIHAN DHANUSHKA' },
+                { name: 'ROSHEN THARAKA SAMARAWICKRAMA' }, { name: 'N.A.THARINDU DINUSHAN WIJESIRI' },
+                { name: 'KASUN WIMALASIRI' }, { name: 'KANISHKA GIHAN' }, { name: 'SINDUJAN' },
+                { name: 'PEYUMAL NIROSHAN' }, { name: 'P.M.WELAGEDARA' }, { name: 'ISHAN MUNASINGHE' },
+                { name: 'IMASH KODAGODA' }, { name: 'ASIRI CHAMARA' }, { name: 'SHERAN CHRISTOPHER' },
+                { name: 'K.S. PRAGATHAN' }, { name: 'PALITHA RUWAN' }, { name: 'ARJUNA SUDARSHANA' },
+                { name: 'NIROSHAN PATHMANATHAN' }, { name: 'DR. WARUNA GUNATHILAKA' },
+                { name: 'DR. SAMPATH WITHANAWASAM' }, { name: 'DR.RUWAN EKANAYAKE' }
+            ];
+            defaultDoctors.forEach(dDoc => {
+                if (!doctors.find(doc => doc.name === dDoc.name)) {
+                    const isDoctor = dDoc.name.toUpperCase().startsWith('DR.');
+                    doctors.push({ 
+                        id: 'D' + Math.floor(Math.random()*10000), 
+                        name: dDoc.name, 
+                        team: '',
+                        specialty: isDoctor ? 'Doctor' : 'Medical Representative'
+                    });
+                    updated = true;
+                }
+            });
+
+            if (updated) {
+                console.log("Saving default data to Google Sheets...");
                 saveData();
             }
-        }).catch(err => {
-            console.error("Firestore permission error! Please check your Firebase Rules:", err);
-            showToast("Database Permission Error. Check Firebase Rules.", "error");
+            
+            // Render everything to reflect the loaded/initialized data
+            renderInventory();
+            renderMedicineOptions();
+            if (typeof renderDoctors === 'function') renderDoctors();
+            if (typeof renderDoctorOptions === 'function') renderDoctorOptions();
         });
         
     } catch (e) {
