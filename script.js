@@ -2187,7 +2187,18 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
         initTheme();
         checkAuth();
-        // Removed delayed saveData to prevent overwriting cloud database with empty local arrays on page reload
+        
+        // Initialize Firebase with default data ONLY if it's completely empty
+        db.collection("store").doc("medicines").get().then(doc => {
+            if (!doc.exists) {
+                console.log("Initializing new database with default data...");
+                saveData();
+            }
+        }).catch(err => {
+            console.error("Firestore permission error! Please check your Firebase Rules:", err);
+            showToast("Database Permission Error. Check Firebase Rules.", "error");
+        });
+        
     } catch (e) {
         console.error("Initialization error:", e);
     }
