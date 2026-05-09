@@ -1,0 +1,2 @@
+Administrator	admin123	Full Access: Can manage stock, edit recipients, view all reports, and access system settings.
+Office Assistant	staff123	Restricted: Can view stock and issue samples. Cannot edit/delete stock, cannot see Monthly Reports, and cannot access Settings.
