@@ -981,28 +981,55 @@ function renderSampleRequestGrid() {
     const body = document.getElementById('bulk-body');
     if (!head || !body) return;
 
-    const monthSelect = document.getElementById('sample-month-select');
-    const yearInput = document.getElementById('sample-year-input');
-    const monthName = monthSelect.options[monthSelect.selectedIndex].text;
-    const yearValue = yearInput.value;
+    if (doctors.length === 0 || medicines.length === 0) {
+        head.innerHTML = '';
+        body.innerHTML = '<tr><td colspan="3" style="text-align:center; padding: 2rem; color: var(--text-muted);">No products or recipients found. Please add some first.</td></tr>';
+        return;
+    }
 
-    // Header: Product Name | Recipient 1 | Recipient 2 | ... | Total
-    let headHtml = '<tr><th style="position:sticky; left:0; background:var(--bg-panel); z-index:10; min-width:200px;">Product Name</th>';
+    // --- STICKY HEADER ROW ---
+    // Two-row header: Row 1 = Product Name + Doctor Names + Total
+    let headHtml = `<tr style="position:sticky; top:0; z-index:20;">
+        <th style="position:sticky; left:0; z-index:25; background:var(--bg-panel); min-width:180px; text-align:left; padding:10px 12px; border-right: 2px solid var(--border-color); white-space:nowrap;">Product Name</th>`;
+
     doctors.forEach(doc => {
-        headHtml += `<th style="writing-mode: vertical-lr; transform: rotate(180deg); padding: 15px 5px; min-width: 45px; font-size: 0.7rem; font-weight:500;">${doc.name}</th>`;
+        // Truncate long names for the header
+        const shortName = doc.name.length > 12 ? doc.name.substring(0, 11) + '…' : doc.name;
+        headHtml += `<th title="${doc.name}" style="min-width:60px; max-width:70px; padding:6px 4px; font-size:0.65rem; font-weight:600; text-align:center; word-break:break-word; line-height:1.2; vertical-align:bottom; background:var(--bg-panel);">${shortName}</th>`;
     });
-    headHtml += '<th style="background:var(--bg-panel); font-weight:700; color:var(--primary);">TOTAL</th></tr>';
+
+    headHtml += `<th style="position:sticky; right:0; z-index:25; background:var(--bg-panel); min-width:60px; font-weight:700; color:var(--primary); text-align:center; border-left: 2px solid var(--border-color);">TOTAL</th>
+    </tr>`;
     head.innerHTML = headHtml;
 
-    // Body: One row per medicine
+    // --- BODY ROWS ---
     let bodyHtml = '';
     medicines.forEach(med => {
-        bodyHtml += `<tr><td style="position:sticky; left:0; background:var(--bg-panel); z-index:9; border-right:2px solid var(--border-color);"><strong>${med.name}</strong></td>`;
+        bodyHtml += `<tr>
+            <td style="position:sticky; left:0; background:var(--bg-panel); z-index:9; border-right:2px solid var(--border-color); padding:8px 12px; white-space:nowrap; min-width:180px;">
+                <div style="font-weight:600; font-size:0.85rem;">${med.name}</div>
+                <div style="font-size:0.7rem; color:var(--text-muted); margin-top:2px;">Stock: ${med.quantity}</div>
+            </td>`;
+
         doctors.forEach(doc => {
-            bodyHtml += `<td><input type="number" class="sample-input" data-med="${med.id}" data-doc="${doc.id}" min="0" value="0" oninput="calculateSampleTotals()" style="width: 45px; padding: 4px 2px; font-size: 0.8rem; background: transparent; border: 1px solid var(--border-color); color: var(--text-primary); text-align: center; border-radius: 4px;"></td>`;
+            bodyHtml += `<td style="padding:4px; text-align:center;">
+                <input type="number" 
+                    class="sample-input" 
+                    data-med="${med.id}" 
+                    data-doc="${doc.id}" 
+                    min="0" 
+                    value="0" 
+                    oninput="calculateSampleTotals()" 
+                    style="width:52px; padding:5px 2px; font-size:0.85rem; background:var(--bg-main); border:1px solid var(--border-color); color:var(--text-primary); text-align:center; border-radius:6px; -moz-appearance:textfield;">
+            </td>`;
         });
-        bodyHtml += `<td class="med-row-total" id="total-${med.id}" style="font-weight:700; color:var(--primary); text-align:center; background:rgba(21, 154, 69, 0.05);">0</td></tr>`;
+
+        bodyHtml += `<td style="position:sticky; right:0; background:var(--bg-panel); border-left:2px solid var(--border-color); z-index:9;">
+            <div class="med-row-total" id="total-${med.id}" style="font-weight:700; color:var(--primary); text-align:center; font-size:1rem; min-width:55px; padding:4px;">0</div>
+        </td>
+        </tr>`;
     });
+
     body.innerHTML = bodyHtml;
 }
 
