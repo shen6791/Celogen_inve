@@ -9,6 +9,8 @@ let users = [];
 
 let currentRole = sessionStorage.getItem('celogen_role') || null;
 let currentUser = sessionStorage.getItem('celogen_user') || null;
+let isDataLoaded = false;
+let saveTimeout = null;
 
 async function loadDataFromGas() {
     try {
@@ -43,6 +45,9 @@ async function loadDataFromGas() {
         if (typeof populateYearFilter === 'function') populateYearFilter();
         if (currentRole === 'Admin') renderUsers();
         
+        isDataLoaded = true;
+        console.log("Database successfully loaded.");
+        
     } catch (error) {
         console.error("Error loading data from Google Sheets:", error);
         showToast("Error loading data from database.", "error");
@@ -51,6 +56,11 @@ async function loadDataFromGas() {
 
 // Utility: Save to Google Sheets
 function saveData() {
+    if (!isDataLoaded) {
+        console.warn("Save blocked: Data is not yet loaded from the server.");
+        return;
+    }
+
     const payload = {
         medicines,
         issues,
@@ -84,13 +94,16 @@ function saveData() {
         document.getElementById('theme-icon-dark')?.classList.add('hidden-role');
     }
 
-    // Fire and forget POST to GAS
-    fetch(GAS_URL, {
-        method: "POST",
-        mode: "no-cors",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-    }).catch(err => console.error("Error saving to GAS", err));
+    // Debounce network request to prevent race conditions and excessive writes
+    if (saveTimeout) clearTimeout(saveTimeout);
+    saveTimeout = setTimeout(() => {
+        fetch(GAS_URL, {
+            method: "POST",
+            mode: "no-cors",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        }).catch(err => console.error("Error saving to GAS", err));
+    }, 1000);
 }
 
 function updateUIByRole() {
@@ -118,6 +131,7 @@ function logActivity(message, type = 'info') {
     });
     // Keep only last 50 activities
     if (activities.length > 50) activities.pop();
+    saveData();
 }
 
 // Navigation Logic
@@ -2046,7 +2060,6 @@ document.getElementById('login-form')?.addEventListener('submit', (e) => {
         checkAuth();
         showToast("Welcome back, " + user.username + "!");
         logActivity("User " + user.username + " logged in", 'info');
-        saveData(); // Save activity
     } else {
         if (errorEl) {
             errorEl.style.display = 'block';
