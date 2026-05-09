@@ -277,7 +277,7 @@ function renderDoctors() {
     if (!tbody) return;
     tbody.innerHTML = doctors.length ? '' : '<tr><td colspan="5" style="text-align:center;">No recipients found.</td></tr>';
     
-    doctors.forEach(doc => {
+    doctors.forEach((doc, index) => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>${doc.id}</td>
@@ -285,12 +285,32 @@ function renderDoctors() {
             <td>${doc.specialty}</td>
             <td>${doc.team || '-'}</td>
             <td>
-                <button class="btn-icon admin-only" onclick="deleteDoctor('${doc.id}')">Del</button>
+                <div style="display:flex; gap:5px;">
+                    <button class="btn-icon" onclick="moveRecipientUp('${doc.id}')" title="Move Up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16"><polyline points="18 15 12 9 6 15"></polyline></svg></button>
+                    <button class="btn-icon" onclick="moveRecipientDown('${doc.id}')" title="Move Down"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16"><polyline points="6 9 12 15 18 9"></polyline></svg></button>
+                    <button class="btn-icon admin-only" onclick="deleteDoctor('${doc.id}')" title="Delete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>
+                </div>
             </td>
         `;
         tbody.appendChild(tr);
     });
 }
+
+window.moveRecipientUp = (id) => {
+    const index = doctors.findIndex(d => d.id === id);
+    if (index > 0) {
+        [doctors[index], doctors[index - 1]] = [doctors[index - 1], doctors[index]];
+        saveData();
+    }
+};
+
+window.moveRecipientDown = (id) => {
+    const index = doctors.findIndex(d => d.id === id);
+    if (index < doctors.length - 1) {
+        [doctors[index], doctors[index + 1]] = [doctors[index + 1], doctors[index]];
+        saveData();
+    }
+};
 
 function renderMedicineOptions() {
     document.querySelectorAll('.issue-medicine').forEach(select => {
@@ -407,6 +427,22 @@ window.deleteUserAccount = (index) => {
 };
 
 // --- FORM SUBMISSIONS ---
+document.getElementById('add-doctor-form')?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const name = document.getElementById('doc-name').value.trim();
+    const specialty = document.getElementById('doc-specialty').value;
+    const team = document.getElementById('doc-team').value.trim();
+    
+    const newId = 'D' + String(Date.now()).slice(-4);
+    doctors.push({ id: newId, name, specialty, team });
+    
+    logActivity(`Added recipient: ${name}`, 'success');
+    saveData();
+    
+    document.getElementById('add-doctor-modal').classList.remove('active');
+    e.target.reset();
+});
+
 document.getElementById('issue-form')?.addEventListener('submit', (e) => {
     e.preventDefault();
     const doctorId = document.getElementById('issue-doctor').value;
