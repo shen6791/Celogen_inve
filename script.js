@@ -1695,17 +1695,99 @@ document.getElementById('add-doctor-form')?.addEventListener('submit', (e) => {
 });
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Initialize Sample Request Month/Year
+    const monthSelect = document.getElementById('sample-month-select');
+    const yearInput = document.getElementById('sample-year-input');
+    if (monthSelect && yearInput) {
+        const now = new Date();
+        monthSelect.value = now.getMonth();
+        yearInput.value = now.getFullYear();
+    }
+
     try {
         initTheme();
         checkAuth();
-        // Delay data rendering slightly to ensure DOM is fully ready
-        setTimeout(() => {
-            saveData();
-        }, 100);
+        
+        // Load data from Google Apps Script Backend
+        loadDataFromGas().then(() => {
+            console.log("Data loaded from Google Sheets!");
+            let updated = false;
+
+            // Ensure default users exist if database is empty
+            if (users.length === 0) {
+                users.push({ username: 'Admin', role: 'Admin', password: 'admin123' });
+                users.push({ username: 'Assistant', role: 'Assistant', password: 'staff123' });
+                updated = true;
+            }
+            
+            // Sync missing products
+            const defaultMeds = [
+                { id: 'M001', name: 'ATOGEN 10mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 1000, status: 'ok', minThreshold: 100 },
+                { id: 'M002', name: 'ATOGEN 20 mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 1000, status: 'ok', minThreshold: 100 },
+                { id: 'M003', name: 'ATOGEN 40 mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 1000, status: 'ok', minThreshold: 100 },
+                { id: 'M004', name: 'CLOPIL 75mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 1000, status: 'ok', minThreshold: 100 },
+                { id: 'M005', name: 'LK 50mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 1000, status: 'ok', minThreshold: 100 },
+                { id: 'M006', name: 'LK 25mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 1000, status: 'ok', minThreshold: 100 },
+                { id: 'M007', name: 'SITABEST 50mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 1000, status: 'ok', minThreshold: 100 },
+                { id: 'M008', name: 'SITABEST 100mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 1000, status: 'ok', minThreshold: 100 },
+                { id: 'M009', name: 'CELOMET 850mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 1000, status: 'ok', minThreshold: 100 },
+                { id: 'M010', name: 'CELOMET SR 500mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 1000, status: 'ok', minThreshold: 100 },
+                { id: 'M011', name: 'EMPABEST 10mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 1000, status: 'ok', minThreshold: 100 },
+                { id: 'M012', name: 'EMPABEST 25mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 1000, status: 'ok', minThreshold: 100 },
+                { id: 'M013', name: 'EWON 400mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 1000, status: 'ok', minThreshold: 100 },
+                { id: 'M014', name: 'PANTOGEN 20mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 1000, status: 'ok', minThreshold: 100 },
+                { id: 'M015', name: 'PANTOGEN 40mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 1000, status: 'ok', minThreshold: 100 }
+            ];
+            defaultMeds.forEach(dMed => {
+                if (!medicines.find(m => m.name === dMed.name)) {
+                    medicines.push(dMed);
+                    updated = true;
+                }
+            });
+
+            // Sync missing recipients
+            const defaultDoctors = [
+                { name: 'M.G.L.W.K.DHARMAPALA' }, { name: 'G.RICHERD PAUL' }, { name: 'S.D.P.NARAMPANAWA' },
+                { name: 'MANIMOHAN' }, { name: 'ASIRI NUWAN' }, { name: 'GIHAN DHANUSHKA' },
+                { name: 'ROSHEN THARAKA SAMARAWICKRAMA' }, { name: 'N.A.THARINDU DINUSHAN WIJESIRI' },
+                { name: 'KASUN WIMALASIRI' }, { name: 'KANISHKA GIHAN' }, { name: 'SINDUJAN' },
+                { name: 'PEYUMAL NIROSHAN' }, { name: 'P.M.WELAGEDARA' }, { name: 'ISHAN MUNASINGHE' },
+                { name: 'IMASH KODAGODA' }, { name: 'ASIRI CHAMARA' }, { name: 'SHERAN CHRISTOPHER' },
+                { name: 'K.S. PRAGATHAN' }, { name: 'PALITHA RUWAN' }, { name: 'ARJUNA SUDARSHANA' },
+                { name: 'NIROSHAN PATHMANATHAN' }, { name: 'DR. WARUNA GUNATHILAKA' },
+                { name: 'DR. SAMPATH WITHANAWASAM' }, { name: 'DR.RUWAN EKANAYAKE' }
+            ];
+            defaultDoctors.forEach(dDoc => {
+                if (!doctors.find(doc => doc.name === dDoc.name)) {
+                    const isDoctor = dDoc.name.toUpperCase().startsWith('DR.');
+                    doctors.push({ 
+                        id: 'D' + Math.floor(Math.random()*10000), 
+                        name: dDoc.name, 
+                        team: '',
+                        specialty: isDoctor ? 'Doctor' : 'Medical Representative'
+                    });
+                    updated = true;
+                }
+            });
+
+            if (updated) {
+                console.log("Saving default data to Google Sheets...");
+                saveData();
+            }
+            
+            // Render UI components
+            renderInventory();
+            renderMedicineOptions();
+            if (typeof renderDoctors === 'function') renderDoctors();
+            if (typeof renderDoctorOptions === 'function') renderDoctorOptions();
+            if (typeof renderUsers === 'function') renderUsers();
+        });
+        
     } catch (e) {
         console.error("Initialization error:", e);
     }
 });
+
 
 // Theme Management
 function initTheme() {
