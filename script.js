@@ -882,12 +882,13 @@ function renderSampleRequestGrid() {
     medicines.forEach(med => {
         mainStoreRow += `
             <td style="text-align:center;">
-                <input type="number" 
+                <input type="text" 
+                       inputmode="numeric"
+                       pattern="[0-9]*"
                        class="main-store-input" 
                        data-med-name="${med.name}" 
-                       min="0" 
-                       placeholder="Enter Stock" 
-                       style="width: 70px; padding: 4px; border: 1px solid var(--primary); background: rgba(255,255,255,0.1); color: var(--primary); border-radius: 4px; text-align:center; font-weight: bold;">
+                       placeholder="0" 
+                       style="width: 80px; padding: 8px 4px; border: 1px solid var(--primary); background: rgba(255,255,255,0.15); color: var(--primary); border-radius: 4px; text-align:center; font-weight: bold; font-size: 1rem;">
             </td>
         `;
     });
@@ -904,13 +905,14 @@ function renderSampleRequestGrid() {
         medicines.forEach(med => {
             bodyHtml += `
                 <td style="text-align:center;">
-                    <input type="number" 
+                    <input type="text" 
+                           inputmode="numeric"
+                           pattern="[0-9]*"
                            class="request-input" 
                            data-doc-name="${doc.name}" 
                            data-med-name="${med.name}" 
-                           min="0" 
                            placeholder="-" 
-                           style="width: 55px; padding: 4px; border: 1px solid var(--border-color); background: rgba(255,255,255,0.05); color: var(--text-primary); border-radius: 4px; text-align:center;">
+                           style="width: 65px; padding: 8px 4px; border: 1px solid var(--border-color); background: rgba(255,255,255,0.08); color: var(--text-primary); border-radius: 4px; text-align:center; font-size: 0.95rem;">
                 </td>
             `;
         });
@@ -2029,150 +2031,4 @@ document.getElementById('btn-export-yearly')?.addEventListener('click', () => {
     XLSX.writeFile(wb, `Celogen_Annual_Usage_${year}.xlsx`);
 });
 
-// --- RESTORED AUTHENTICATION LOGIC ---
-
-function checkAuth() {
-    const loginScreen = document.getElementById('login-screen');
-    if (!currentRole) {
-        if (loginScreen) loginScreen.classList.remove('hidden-role');
-        document.body.classList.add('login-required');
-    } else {
-        if (loginScreen) loginScreen.classList.add('hidden-role');
-        document.body.classList.remove('login-required');
-        updateUIByRole();
-    }
-}
-
-document.getElementById('login-form')?.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const usernameInput = document.getElementById('login-username').value.trim();
-    const pass = document.getElementById('login-pass').value.trim();
-    const errorEl = document.getElementById('login-error');
-    
-    const user = users.find(u => u.username.toLowerCase() === usernameInput.toLowerCase() && u.password === pass);
-    
-    if (user) {
-        currentRole = user.role;
-        currentUser = user.username;
-        sessionStorage.setItem('celogen_role', user.role);
-        sessionStorage.setItem('celogen_user', user.username);
-        if (errorEl) errorEl.style.display = 'none';
-        checkAuth();
-        showToast("Welcome back, " + user.username + "!");
-        logActivity("User " + user.username + " logged in", 'info');
-    } else {
-        if (errorEl) {
-            errorEl.style.display = 'block';
-            errorEl.innerText = 'Invalid username or password.';
-        }
-    }
 });
-
-window.logout = function() {
-    if(confirm('Are you sure you want to sign out?')) {
-        sessionStorage.removeItem('celogen_role');
-        sessionStorage.removeItem('celogen_user');
-        currentRole = null;
-        currentUser = null;
-        location.reload(); 
-    }
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-    // Initialize Sample Request Month/Year
-    const monthSelect = document.getElementById('sample-month-select');
-    const yearInput = document.getElementById('sample-year-input');
-    if (monthSelect && yearInput) {
-        const now = new Date();
-        monthSelect.value = now.getMonth();
-        yearInput.value = now.getFullYear();
-    }
-    try {
-        initTheme();
-        checkAuth();
-        
-        // Load data from Google Apps Script Backend
-        loadDataFromGas().then(() => {
-            console.log("Data loaded from Google Sheets!");
-            let updated = false;
-            
-            // Sync missing products
-            const defaultMeds = [
-                { id: 'M001', name: 'ATOGEN 10mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 1000, status: 'ok', minThreshold: 100 },
-                { id: 'M002', name: 'ATOGEN 20 mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 1000, status: 'ok', minThreshold: 100 },
-                { id: 'M003', name: 'ATOGEN 40 mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 1000, status: 'ok', minThreshold: 100 },
-                { id: 'M004', name: 'CLOPIL 75mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 1000, status: 'ok', minThreshold: 100 },
-                { id: 'M005', name: 'LK 50mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 1000, status: 'ok', minThreshold: 100 },
-                { id: 'M006', name: 'LK 25mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 1000, status: 'ok', minThreshold: 100 },
-                { id: 'M007', name: 'SITABEST 50mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 1000, status: 'ok', minThreshold: 100 },
-                { id: 'M008', name: 'SITABEST 100mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 1000, status: 'ok', minThreshold: 100 },
-                { id: 'M009', name: 'CELOMET 850mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 1000, status: 'ok', minThreshold: 100 },
-                { id: 'M010', name: 'CELOMET SR 500mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 1000, status: 'ok', minThreshold: 100 },
-                { id: 'M011', name: 'EMPABEST 10mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 1000, status: 'ok', minThreshold: 100 },
-                { id: 'M012', name: 'EMPABEST 25mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 1000, status: 'ok', minThreshold: 100 },
-                { id: 'M013', name: 'EWON 400mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 1000, status: 'ok', minThreshold: 100 },
-                { id: 'M014', name: 'PANTOGEN 20mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 1000, status: 'ok', minThreshold: 100 },
-                { id: 'M015', name: 'PANTOGEN 40mg', batch: 'BATCH-001', expiry: '2026-12', quantity: 1000, status: 'ok', minThreshold: 100 }
-            ];
-            defaultMeds.forEach(dMed => {
-                if (!medicines.find(m => m.name === dMed.name)) {
-                    medicines.push(dMed);
-                    updated = true;
-                }
-            });
-
-            // Sync missing doctors/staff
-            const defaultDoctors = [
-                { name: 'M.G.L.W.K.DHARMAPALA' }, { name: 'G.RICHERD PAUL' }, { name: 'S.D.P.NARAMPANAWA' },
-                { name: 'MANIMOHAN' }, { name: 'ASIRI NUWAN' }, { name: 'GIHAN DHANUSHKA' },
-                { name: 'ROSHEN THARAKA SAMARAWICKRAMA' }, { name: 'N.A.THARINDU DINUSHAN WIJESIRI' },
-                { name: 'KASUN WIMALASIRI' }, { name: 'KANISHKA GIHAN' }, { name: 'SINDUJAN' },
-                { name: 'PEYUMAL NIROSHAN' }, { name: 'P.M.WELAGEDARA' }, { name: 'ISHAN MUNASINGHE' },
-                { name: 'IMASH KODAGODA' }, { name: 'ASIRI CHAMARA' }, { name: 'SHERAN CHRISTOPHER' },
-                { name: 'K.S. PRAGATHAN' }, { name: 'PALITHA RUWAN' }, { name: 'ARJUNA SUDARSHANA' },
-                { name: 'NIROSHAN PATHMANATHAN' }, { name: 'DR. WARUNA GUNATHILAKA' },
-                { name: 'DR. SAMPATH WITHANAWASAM' }, { name: 'DR.RUWAN EKANAYAKE' }
-            ];
-            defaultDoctors.forEach(dDoc => {
-                if (!doctors.find(doc => doc.name === dDoc.name)) {
-                    const isDoctor = dDoc.name.toUpperCase().startsWith('DR.');
-                    doctors.push({ 
-                        id: 'D' + Math.floor(Math.random()*10000), 
-                        name: dDoc.name, 
-                        team: '',
-                        specialty: isDoctor ? 'Doctor' : 'Medical Representative'
-                    });
-                    updated = true;
-                }
-            });
-
-            if (updated) {
-                console.log("Saving default data to Google Sheets...");
-                saveData();
-            }
-            
-            // Render everything to reflect the loaded/initialized data
-            renderInventory();
-            renderMedicineOptions();
-            if (typeof renderDoctors === 'function') renderDoctors();
-            if (typeof renderDoctorOptions === 'function') renderDoctorOptions();
-        });
-        
-    } catch (e) {
-        console.error("Initialization error:", e);
-    }
-});
-// Theme Management
-function initTheme() {
-    const savedTheme = localStorage.getItem('celogen_theme') || 'dark';
-    if (savedTheme === 'light') {
-        document.body.classList.add('light-theme');
-    }
-}
-
-window.toggleTheme = function() {
-    document.body.classList.toggle('light-theme');
-    const isLight = document.body.classList.contains('light-theme');
-    localStorage.setItem('celogen_theme', isLight ? 'light' : 'dark');
-    saveData(); // Refresh icons
-}
